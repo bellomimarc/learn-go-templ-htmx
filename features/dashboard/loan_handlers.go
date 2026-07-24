@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	dashboardviews "github.com/marcello/saas-poc/features/dashboard/views"
 )
@@ -95,6 +96,8 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 
 	if form.FullName == "" {
 		addError("full_name", "Applicant name is required.")
+	} else if nonSpaceChars(form.FullName) < 3 {
+		addError("full_name", "Applicant name must contain at least 3 non-space characters.")
 	}
 
 	if form.EmploymentType == "" {
@@ -114,6 +117,8 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	loanAmount, loanAmountOK := parsePositiveFloat(form.LoanAmount)
 	if !loanAmountOK {
 		addError("loan_amount", "Loan amount must be a positive number.")
+	} else if loanAmount <= 100 {
+		addError("loan_amount", "Loan amount must be greater than EUR 100.")
 	}
 
 	loanYears, loanYearsOK := parsePositiveInt(form.LoanYears)
@@ -331,4 +336,14 @@ func calculateMonthlyInstallment(principal float64, annualRate float64, termMont
 
 	factor := math.Pow(1+monthlyRate, float64(termMonths))
 	return principal * ((monthlyRate * factor) / (factor - 1))
+}
+
+func nonSpaceChars(value string) int {
+	count := 0
+	for _, r := range value {
+		if !unicode.IsSpace(r) {
+			count++
+		}
+	}
+	return count
 }
