@@ -1,13 +1,13 @@
 // Package dashboard contiene i template Templ per la dashboard gestionale.
 package dashboard
 
-templ Layout(title string) {
+templ Layout(title string, locale Locale, currentPath string) {
 	<!DOCTYPE html>
-	<html lang="it">
+	<html lang={ locale.Code }>
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			<title>{ title } - SaaS</title>
+			<title>{ title } - { locale.Text("layout.title.suffix") }</title>
 			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 			<style>
 				* {
@@ -28,9 +28,34 @@ templ Layout(title string) {
 					padding: 1.5rem 2rem;
 					box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 				}
+				.header-row {
+					display: flex;
+					justify-content: space-between;
+					gap: 1rem;
+					align-items: center;
+				}
 				.header h1 {
 					font-size: 1.8rem;
 					font-weight: 600;
+				}
+				.language-switcher {
+					display: flex;
+					align-items: center;
+					gap: 0.5rem;
+				}
+				.language-switcher label {
+					font-size: 0.9rem;
+					font-weight: 600;
+				}
+				.language-switcher select {
+					padding: 0.45rem 0.7rem;
+					border-radius: 999px;
+					border: 1px solid rgba(255, 255, 255, 0.35);
+					background: rgba(255, 255, 255, 0.18);
+					color: white;
+				}
+				.language-switcher select option {
+					color: #1f2937;
 				}
 				.container {
 					flex: 1;
@@ -84,8 +109,20 @@ templ Layout(title string) {
 		</head>
 		<body>
 			<div class="header">
-				<h1>📊 SaaS PoC</h1>
-				<p>Minimal Stack: Go + Chi + Templ + HTMX</p>
+				<div class="header-row">
+					<div>
+						<h1>📊 { locale.Text("layout.brand") }</h1>
+						<p>{ locale.Text("layout.subtitle") }</p>
+					</div>
+					<form class="language-switcher" action={ currentPath } method="get">
+						<label for="lang">{ locale.Text("language.label") }</label>
+						<select id="lang" name="lang" onchange="this.form.submit()">
+							for _, option := range locale.LanguageOptions() {
+								<option value={ option.Code } if option.Code == locale.Code { selected }>{ option.Label }</option>
+							}
+						</select>
+					</form>
+				</div>
 			</div>
 			<div class="container">
 				{ children... }

@@ -20,7 +20,8 @@ func RegisterRoutes(router chi.Router) {
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := dashboardviews.Dashboard().Render(r.Context(), w); err != nil {
+	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
+	if err := dashboardviews.Dashboard(locale).Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering dashboard", http.StatusInternalServerError)
 		log.Printf("Error rendering dashboard: %v\n", err)
 	}
@@ -28,12 +29,13 @@ func handleDashboard(w http.ResponseWriter, r *http.Request) {
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 
-	status := "Online"
+	status := locale.Text("status.online")
 	timestamp := time.Now()
 	time.Sleep(500 * time.Millisecond)
 
-	if err := dashboardviews.StatusComponent(status, timestamp).Render(r.Context(), w); err != nil {
+	if err := dashboardviews.StatusComponent(locale, status, timestamp).Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering status component", http.StatusInternalServerError)
 		log.Printf("Error rendering status component: %v\n", err)
 	}

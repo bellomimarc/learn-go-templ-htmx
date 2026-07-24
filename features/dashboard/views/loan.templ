@@ -6,15 +6,15 @@ import (
 	"time"
 )
 
-templ LoanApplicationPage(form LoanFormData, state LoanValidationState) {
-	@Layout("Loan Application Demo") {
+templ LoanApplicationPage(locale Locale, form LoanFormData, state LoanValidationState) {
+	@Layout(locale.Text("loan.title"), locale, "/dashboard/loan") {
 		<div class="card loan-card">
-			<h2>Reactive Loan Application</h2>
+			<h2>{ locale.Text("loan.heading") }</h2>
 			<p class="loan-subtitle">
-				Server-side validation with HTMX updates for cross-field business rules.
+				{ locale.Text("loan.subtitle") }
 			</p>
 			<p style="margin-top: 0.75rem;">
-				<a href="/dashboard" style="color: #667eea; text-decoration: underline;">Back to dashboard overview</a>
+				<a href={ localizedPath("/dashboard", locale) } style="color: #667eea; text-decoration: underline;">{ locale.Text("loan.back") }</a>
 			</p>
 		</div>
 
@@ -172,135 +172,136 @@ templ LoanApplicationPage(form LoanFormData, state LoanValidationState) {
 
 			<form
 				id="loan-form"
-				hx-post="/api/loan/validate"
+				hx-post={ localizedPath("/api/loan/validate", locale) }
 				hx-trigger="input changed delay:250ms, change"
 				hx-target="#loan-live-feedback"
 				hx-swap="innerHTML"
 				hx-on:input="if (event.target.matches('.loan-input, .loan-select')) { event.target.dataset.touched = 'true'; }"
 				hx-on:change="if (event.target.matches('.loan-input, .loan-select')) { event.target.dataset.touched = 'true'; }"
 			>
+				<input type="hidden" name="lang" value={ locale.Code }/>
 				<div class="loan-grid">
 					<div class="loan-field">
-						<label class="loan-label" for="full_name">Applicant Name</label>
-						<input class={ "loan-input " + loanInputClass(state, "full_name") } id="full_name" name="full_name" value={ form.FullName } placeholder="Mario Rossi" required minlength="3" pattern="(?:.*\S){3,}" title="Insert at least 3 non-space characters."/>
-						<p class="loan-native-error">Insert at least 3 non-space characters.</p>
+						<label class="loan-label" for="full_name">{ locale.Text("loan.label.full_name") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "full_name") } id="full_name" name="full_name" value={ form.FullName } placeholder={ locale.Text("loan.placeholder.full_name") } required minlength="3" pattern="(?:.*\S){3,}" title={ locale.Text("loan.title.full_name") }/>
+						<p class="loan-native-error">{ locale.Text("loan.title.full_name") }</p>
 						@LoanFieldError(state, "full_name")
 					</div>
 					<div class="loan-field">
-						<label class="loan-label" for="birth_date">Birth Date</label>
+						<label class="loan-label" for="birth_date">{ locale.Text("loan.label.birth_date") }</label>
 						<input class={ "loan-input " + loanInputClass(state, "birth_date") } id="birth_date" type="date" name="birth_date" value={ form.BirthDate } required max={ maxBirthDate() }/>
-						<p class="loan-native-error">Birth date must be at least 18 years ago.</p>
+						<p class="loan-native-error">{ locale.Text("loan.title.birth_date") }</p>
 						@LoanFieldError(state, "birth_date")
 					</div>
 
 					<div class="loan-field">
-						<label class="loan-label" for="employment_type">Employment Type</label>
+						<label class="loan-label" for="employment_type">{ locale.Text("loan.label.employment_type") }</label>
 						<select class={ "loan-select " + loanInputClass(state, "employment_type") } id="employment_type" name="employment_type">
-							<option value="">Select employment</option>
-							<option value="salaried" if form.EmploymentType == "salaried" { selected }>Salaried</option>
-							<option value="self_employed" if form.EmploymentType == "self_employed" { selected }>Self-employed</option>
-							<option value="contractor" if form.EmploymentType == "contractor" { selected }>Contractor</option>
+							<option value="">{ locale.Text("loan.option.employment.placeholder") }</option>
+							<option value="salaried" if form.EmploymentType == "salaried" { selected }>{ locale.Text("loan.option.employment.salaried") }</option>
+							<option value="self_employed" if form.EmploymentType == "self_employed" { selected }>{ locale.Text("loan.option.employment.self_employed") }</option>
+							<option value="contractor" if form.EmploymentType == "contractor" { selected }>{ locale.Text("loan.option.employment.contractor") }</option>
 						</select>
 						@LoanFieldError(state, "employment_type")
 					</div>
 
 					<div class="loan-field">
-						<label class="loan-label" for="purpose">Purpose</label>
+						<label class="loan-label" for="purpose">{ locale.Text("loan.label.purpose") }</label>
 						<select class="loan-select" id="purpose" name="purpose">
-							<option value="">Select purpose</option>
-							<option value="home_purchase" if form.Purpose == "home_purchase" { selected }>Home purchase</option>
-							<option value="home_renovation" if form.Purpose == "home_renovation" { selected }>Home renovation</option>
-							<option value="debt_consolidation" if form.Purpose == "debt_consolidation" { selected }>Debt consolidation</option>
-							<option value="business" if form.Purpose == "business" { selected }>Business investment</option>
+							<option value="">{ locale.Text("loan.option.purpose.placeholder") }</option>
+							<option value="home_purchase" if form.Purpose == "home_purchase" { selected }>{ locale.Text("loan.option.purpose.home_purchase") }</option>
+							<option value="home_renovation" if form.Purpose == "home_renovation" { selected }>{ locale.Text("loan.option.purpose.home_renovation") }</option>
+							<option value="debt_consolidation" if form.Purpose == "debt_consolidation" { selected }>{ locale.Text("loan.option.purpose.debt_consolidation") }</option>
+							<option value="business" if form.Purpose == "business" { selected }>{ locale.Text("loan.option.purpose.business") }</option>
 						</select>
 					</div>
 
 					<div class="loan-field">
-						<label class="loan-label" for="annual_income">Annual Income (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "annual_income") } id="annual_income" type="number" name="annual_income" value={ form.AnnualIncome } placeholder="42000" required min="0.01" step="0.01"/>
-						<p class="loan-native-error">Annual income must be a positive number.</p>
+						<label class="loan-label" for="annual_income">{ locale.Text("loan.label.annual_income") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "annual_income") } id="annual_income" type="number" name="annual_income" value={ form.AnnualIncome } placeholder={ locale.Text("loan.placeholder.annual_income") } required min="0.01" step="0.01"/>
+						<p class="loan-native-error">{ locale.Text("loan.title.annual_income") }</p>
 						@LoanFieldError(state, "annual_income")
 					</div>
 					<div class="loan-field">
-						<label class="loan-label" for="monthly_debt">Current Monthly Debt (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "monthly_debt") } id="monthly_debt" name="monthly_debt" value={ form.MonthlyDebt } placeholder="450"/>
+						<label class="loan-label" for="monthly_debt">{ locale.Text("loan.label.monthly_debt") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "monthly_debt") } id="monthly_debt" name="monthly_debt" value={ form.MonthlyDebt } placeholder={ locale.Text("loan.placeholder.monthly_debt") }/>
 						@LoanFieldError(state, "monthly_debt")
 					</div>
 
 					<div class="loan-field">
-						<label class="loan-label" for="loan_amount">Requested Loan Amount (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "loan_amount") } id="loan_amount" type="number" name="loan_amount" value={ form.LoanAmount } placeholder="180000" required min="100.01" step="0.01"/>
-						<p class="loan-native-error">Loan amount must be greater than EUR 100.</p>
+						<label class="loan-label" for="loan_amount">{ locale.Text("loan.label.loan_amount") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "loan_amount") } id="loan_amount" type="number" name="loan_amount" value={ form.LoanAmount } placeholder={ locale.Text("loan.placeholder.loan_amount") } required min="100.01" step="0.01"/>
+						<p class="loan-native-error">{ locale.Text("loan.title.loan_amount") }</p>
 						@LoanFieldError(state, "loan_amount")
 					</div>
 					<div class="loan-field">
-						<label class="loan-label" for="loan_years">Loan Duration (years)</label>
-						<input class={ "loan-input " + loanInputClass(state, "loan_years") } id="loan_years" name="loan_years" value={ form.LoanYears } placeholder="25"/>
+						<label class="loan-label" for="loan_years">{ locale.Text("loan.label.loan_years") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "loan_years") } id="loan_years" name="loan_years" value={ form.LoanYears } placeholder={ locale.Text("loan.placeholder.loan_years") }/>
 						@LoanFieldError(state, "loan_years")
 					</div>
 
 					<div class="loan-field">
-						<label class="loan-label" for="down_payment">Down Payment (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "down_payment") } id="down_payment" name="down_payment" value={ form.DownPayment } placeholder="20000"/>
-						<p class="loan-hint">Less than 10% requires guarantor or strong collateral.</p>
+						<label class="loan-label" for="down_payment">{ locale.Text("loan.label.down_payment") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "down_payment") } id="down_payment" name="down_payment" value={ form.DownPayment } placeholder={ locale.Text("loan.placeholder.down_payment") }/>
+						<p class="loan-hint">{ locale.Text("loan.hint.down_payment") }</p>
 						@LoanFieldError(state, "down_payment")
 					</div>
 					<div class="loan-field">
-						<label class="loan-label" for="collateral_value">Collateral Value (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "collateral_value") } id="collateral_value" name="collateral_value" value={ form.CollateralValue } placeholder="220000"/>
+						<label class="loan-label" for="collateral_value">{ locale.Text("loan.label.collateral_value") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "collateral_value") } id="collateral_value" name="collateral_value" value={ form.CollateralValue } placeholder={ locale.Text("loan.placeholder.collateral_value") }/>
 						@LoanFieldError(state, "collateral_value")
 					</div>
 
 					<div class="loan-field loan-check">
 						<input id="has_guarantor" type="checkbox" name="has_guarantor" value="true" if form.HasGuarantor { checked }/>
-						<label class="loan-label" for="has_guarantor">Guarantor available</label>
+						<label class="loan-label" for="has_guarantor">{ locale.Text("loan.label.guarantor") }</label>
 					</div>
 					<div class="loan-field">
-						<label class="loan-label" for="guarantor_income">Guarantor Annual Income (EUR)</label>
-						<input class={ "loan-input " + loanInputClass(state, "guarantor_income") } id="guarantor_income" name="guarantor_income" value={ form.GuarantorIncome } placeholder="30000"/>
+						<label class="loan-label" for="guarantor_income">{ locale.Text("loan.label.guarantor_income") }</label>
+						<input class={ "loan-input " + loanInputClass(state, "guarantor_income") } id="guarantor_income" name="guarantor_income" value={ form.GuarantorIncome } placeholder={ locale.Text("loan.placeholder.guarantor_income") }/>
 						@LoanFieldError(state, "guarantor_income")
 					</div>
 				</div>
 
 				<div class="loan-actions" id="loan-submit-controls">
-					@LoanSubmitControls(state)
+					@LoanSubmitControls(locale, state)
 				</div>
 			</form>
 
 			<div class="loan-live" id="loan-live-feedback">
-				@LoanValidationPanel(state)
+				@LoanValidationPanel(locale, state)
 			</div>
 			<div class="loan-result" id="loan-submit-result"></div>
 		</div>
 	}
 }
 
-templ LoanValidationResponse(state LoanValidationState) {
-	@LoanValidationPanel(state)
+templ LoanValidationResponse(locale Locale, state LoanValidationState) {
+	@LoanValidationPanel(locale, state)
 	<div id="loan-submit-controls" hx-swap-oob="true" class="loan-actions">
-		@LoanSubmitControls(state)
+		@LoanSubmitControls(locale, state)
 	</div>
 }
 
-templ LoanValidationPanel(state LoanValidationState) {
+templ LoanValidationPanel(locale Locale, state LoanValidationState) {
 	<div class="loan-panel">
-		<h4>Validation Feedback</h4>
+		<h4>{ locale.Text("loan.validation.title") }</h4>
 		if !state.HasEvaluated {
-			<p>Start typing to trigger live server-side checks across all dependent fields.</p>
+			<p>{ locale.Text("loan.validation.waiting") }</p>
 		} else {
 			if len(state.Errors) > 0 {
-				<p><strong>Blocking issues:</strong></p>
+				<p><strong>{ locale.Text("loan.validation.blocking") }</strong></p>
 				<ul class="loan-list loan-list--errors">
 					for _, issue := range state.Errors {
 						<li>{ issue.Message }</li>
 					}
 				</ul>
 			} else {
-				<p><strong>No blocking issues found.</strong> The form can be submitted.</p>
+				<p><strong>{ locale.Text("loan.validation.clear") }</strong> { locale.Text("loan.validation.submittable") }</p>
 			}
 
 			if len(state.Warnings) > 0 {
-				<p style="margin-top: 0.85rem;"><strong>Warnings:</strong></p>
+				<p style="margin-top: 0.85rem;"><strong>{ locale.Text("loan.validation.warnings") }</strong></p>
 				<ul class="loan-list loan-list--warnings">
 					for _, warning := range state.Warnings {
 						<li>{ warning }</li>
@@ -311,27 +312,27 @@ templ LoanValidationPanel(state LoanValidationState) {
 			if state.TermMonths > 0 {
 				<div class="loan-metrics">
 					<div class="loan-metric">
-						<span class="loan-metric-label">Net monthly income</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.net_income") }</span>
 						<span class="loan-metric-value">{ formatCurrency(state.NetMonthlyIncome) }</span>
 					</div>
 					<div class="loan-metric">
-						<span class="loan-metric-label">Estimated installment</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.installment") }</span>
 						<span class="loan-metric-value">{ formatCurrency(state.EstimatedInstallment) }</span>
 					</div>
 					<div class="loan-metric">
-						<span class="loan-metric-label">Debt-to-income ratio</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.dti") }</span>
 						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.DebtToIncomeRatio) }</span>
 					</div>
 					<div class="loan-metric">
-						<span class="loan-metric-label">Employment max loan</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.employment_cap") }</span>
 						<span class="loan-metric-value">{ formatCurrency(state.MaximumLoanAmount) }</span>
 					</div>
 					<div class="loan-metric">
-						<span class="loan-metric-label">Down payment ratio</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.down_payment") }</span>
 						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.DownPaymentRatio) }</span>
 					</div>
 					<div class="loan-metric">
-						<span class="loan-metric-label">Applied annual rate</span>
+						<span class="loan-metric-label">{ locale.Text("loan.metric.rate") }</span>
 						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.InterestRate) }</span>
 					</div>
 				</div>
@@ -340,10 +341,10 @@ templ LoanValidationPanel(state LoanValidationState) {
 	</div>
 }
 
-templ LoanSubmitControls(state LoanValidationState) {
+templ LoanSubmitControls(locale Locale, state LoanValidationState) {
 	<button
 		type="button"
-		hx-post="/api/loan/submit"
+		hx-post={ localizedPath("/api/loan/submit", locale) }
 		hx-include="#loan-form"
 		hx-target="#loan-submit-result"
 		hx-swap="innerHTML"
@@ -351,11 +352,11 @@ templ LoanSubmitControls(state LoanValidationState) {
 			disabled
 		}
 	>
-		Submit Application
+		{ locale.Text("loan.submit") }
 		<span class="htmx-indicator spinner"></span>
 	</button>
 	if state.HasEvaluated && !state.IsValid {
-		<span class="loan-hint">Submission is disabled until blocking issues are resolved.</span>
+		<span class="loan-hint">{ locale.Text("loan.submit.blocked") }</span>
 	}
 }
 
@@ -365,7 +366,7 @@ templ LoanFieldError(state LoanValidationState, field string) {
 	}
 }
 
-templ LoanSubmissionResult(message string, severity string) {
+templ LoanSubmissionResult(locale Locale, message string, severity string) {
 	@AlertComponent(message, severity)
 }
 

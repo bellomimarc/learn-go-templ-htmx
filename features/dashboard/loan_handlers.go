@@ -15,11 +15,12 @@ import (
 
 func handleLoanApplicationPage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 
 	form := dashboardviews.LoanFormData{}
 	state := dashboardviews.LoanValidationState{HasEvaluated: false}
 
-	if err := dashboardviews.LoanApplicationPage(form, state).Render(r.Context(), w); err != nil {
+	if err := dashboardviews.LoanApplicationPage(locale, form, state).Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering loan application page", http.StatusInternalServerError)
 		log.Printf("Error rendering loan application page: %v\n", err)
 	}
@@ -27,12 +28,13 @@ func handleLoanApplicationPage(w http.ResponseWriter, r *http.Request) {
 
 func handleLoanValidation(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 
 	form := parseLoanFormData(r)
-	state := validateLoanForm(form, true)
+	state := validateLoanForm(form, true, locale)
 	time.Sleep(150 * time.Millisecond)
 
-	if err := dashboardviews.LoanValidationResponse(state).Render(r.Context(), w); err != nil {
+	if err := dashboardviews.LoanValidationResponse(locale, state).Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering validation response", http.StatusInternalServerError)
 		log.Printf("Error rendering validation response: %v\n", err)
 	}
@@ -40,13 +42,14 @@ func handleLoanValidation(w http.ResponseWriter, r *http.Request) {
 
 func handleLoanSubmission(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 
 	form := parseLoanFormData(r)
-	state := validateLoanForm(form, true)
+	state := validateLoanForm(form, true, locale)
 
 	if !state.IsValid {
 		w.WriteHeader(http.StatusUnprocessableEntity)
-		if err := dashboardviews.LoanSubmissionResult("Application cannot be submitted yet. Resolve the blocking validation issues first.", "error").Render(r.Context(), w); err != nil {
+		if err := dashboardviews.LoanSubmissionResult(locale, locale.Text("loan.submit.invalid"), "error").Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering invalid submission response", http.StatusInternalServerError)
 			log.Printf("Error rendering invalid submission response: %v\n", err)
 		}
@@ -54,9 +57,9 @@ func handleLoanSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	applicationID := fmt.Sprintf("LN-%d", time.Now().UnixNano()%1000000000)
-	message := fmt.Sprintf("Application %s submitted successfully. Estimated installment: EUR %.2f/month.", applicationID, state.EstimatedInstallment)
+	message := strings.NewReplacer("{id}", applicationID, "{installment}", fmt.Sprintf("%.2f", state.EstimatedInstallment)).Replace(locale.Text("loan.submit.success"))
 
-	if err := dashboardviews.LoanSubmissionResult(message, "info").Render(r.Context(), w); err != nil {
+	if err := dashboardviews.LoanSubmissionResult(locale, message, "info").Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering submission response", http.StatusInternalServerError)
 		log.Printf("Error rendering submission response: %v\n", err)
 	}
@@ -81,7 +84,7 @@ func parseLoanFormData(r *http.Request) dashboardviews.LoanFormData {
 	}
 }
 
-func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashboardviews.LoanValidationState {
+func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool, locale dashboardviews.Locale) dashboardviews.LoanValidationState {
 	state := dashboardviews.LoanValidationState{HasEvaluated: hasEvaluated}
 	if !hasEvaluated {
 		return state
@@ -95,40 +98,40 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	}
 
 	if form.FullName == "" {
-		addError("full_name", "Applicant name is required.")
+		addError("full_name", locale.Text("loan.error.full_name.required"))
 	} else if nonSpaceChars(form.FullName) < 3 {
-		addError("full_name", "Applicant name must contain at least 3 non-space characters.")
+		addError("full_name", locale.Text("loan.error.full_name.length"))
 	}
 
 	if form.EmploymentType == "" {
-		addError("employment_type", "Employment type is required.")
+		addError("employment_type", locale.Text("loan.error.employment_type.required"))
 	}
 
 	annualIncome, annualIncomeOK := parsePositiveFloat(form.AnnualIncome)
 	if !annualIncomeOK {
-		addError("annual_income", "Annual income must be a positive number.")
+		addError("annual_income", locale.Text("loan.error.annual_income"))
 	}
 
 	monthlyDebt, monthlyDebtOK := parseNonNegativeFloat(form.MonthlyDebt)
 	if !monthlyDebtOK {
-		addError("monthly_debt", "Monthly debt must be zero or a positive number.")
+		addError("monthly_debt", locale.Text("loan.error.monthly_debt"))
 	}
 
 	loanAmount, loanAmountOK := parsePositiveFloat(form.LoanAmount)
 	if !loanAmountOK {
-		addError("loan_amount", "Loan amount must be a positive number.")
+		addError("loan_amount", locale.Text("loan.error.loan_amount.positive"))
 	} else if loanAmount <= 100 {
-		addError("loan_amount", "Loan amount must be greater than EUR 100.")
+		addError("loan_amount", locale.Text("loan.error.loan_amount.minimum"))
 	}
 
 	loanYears, loanYearsOK := parsePositiveInt(form.LoanYears)
 	if !loanYearsOK {
-		addError("loan_years", "Loan duration must be a positive integer.")
+		addError("loan_years", locale.Text("loan.error.loan_years"))
 	}
 
 	downPayment, downPaymentOK := parseNonNegativeFloat(form.DownPayment)
 	if !downPaymentOK {
-		addError("down_payment", "Down payment must be zero or a positive number.")
+		addError("down_payment", locale.Text("loan.error.down_payment"))
 	}
 
 	collateralValue := 0.0
@@ -136,7 +139,7 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	if form.CollateralValue != "" {
 		collateralValue, collateralValueOK = parseNonNegativeFloat(form.CollateralValue)
 		if !collateralValueOK {
-			addError("collateral_value", "Collateral value must be zero or a positive number.")
+			addError("collateral_value", locale.Text("loan.error.collateral_value"))
 		}
 	}
 
@@ -144,32 +147,32 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	guarantorIncomeOK := true
 	if form.HasGuarantor {
 		if form.GuarantorIncome == "" {
-			addError("guarantor_income", "Guarantor income is required when guarantor is enabled.")
+			addError("guarantor_income", locale.Text("loan.error.guarantor_income.required"))
 			guarantorIncomeOK = false
 		} else {
 			guarantorIncome, guarantorIncomeOK = parsePositiveFloat(form.GuarantorIncome)
 			if !guarantorIncomeOK {
-				addError("guarantor_income", "Guarantor income must be a positive number.")
+				addError("guarantor_income", locale.Text("loan.error.guarantor_income.positive"))
 			}
 		}
 	} else if form.GuarantorIncome != "" {
-		addWarning("Guarantor income was provided but guarantor is not enabled.")
+		addWarning(locale.Text("loan.warning.guarantor_income.unused"))
 	}
 
 	birthDate, birthDateOK := parseBirthDate(form.BirthDate)
 	if !birthDateOK {
-		addError("birth_date", "Birth date is required and must be valid.")
+		addError("birth_date", locale.Text("loan.error.birth_date.required"))
 	}
 
 	if loanYearsOK {
 		switch form.EmploymentType {
 		case "contractor":
 			if loanYears > 20 {
-				addError("loan_years", "Contractors cannot request more than 20 years.")
+				addError("loan_years", locale.Text("loan.error.loan_years.contractor"))
 			}
 		case "self_employed":
 			if loanYears > 25 {
-				addError("loan_years", "Self-employed applicants cannot request more than 25 years.")
+				addError("loan_years", locale.Text("loan.error.loan_years.self_employed"))
 			}
 		}
 	}
@@ -177,10 +180,10 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	if birthDateOK {
 		age := yearsSince(birthDate, time.Now())
 		if age < 18 {
-			addError("birth_date", "Applicant must be at least 18 years old.")
+			addError("birth_date", locale.Text("loan.error.birth_date.age"))
 		}
 		if loanYearsOK && age+loanYears > 75 {
-			addError("loan_years", "Applicant age at loan end cannot exceed 75 years.")
+			addError("loan_years", locale.Text("loan.error.loan_years.age"))
 		}
 	}
 
@@ -190,12 +193,12 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	}
 
 	if annualIncomeOK && loanAmountOK && loanAmount > state.MaximumLoanAmount {
-		addError("loan_amount", fmt.Sprintf("Requested amount exceeds employment cap (max EUR %.2f).", state.MaximumLoanAmount))
+		addError("loan_amount", strings.NewReplacer("{max}", fmt.Sprintf("%.2f", state.MaximumLoanAmount)).Replace(locale.Text("loan.error.loan_amount.cap")))
 	}
 
 	if loanAmountOK && downPaymentOK {
 		if downPayment > loanAmount {
-			addError("down_payment", "Down payment cannot be greater than the requested amount.")
+			addError("down_payment", locale.Text("loan.error.down_payment.gt_loan"))
 		} else if loanAmount > 0 {
 			state.DownPaymentRatio = (downPayment / loanAmount) * 100
 		}
@@ -221,9 +224,9 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 		if state.DownPaymentRatio < 10 {
 			hasStrongCollateral := collateralValueOK && collateralValue >= loanAmount*1.2
 			if !form.HasGuarantor && !hasStrongCollateral {
-				addError("down_payment", "Down payment under 10% requires guarantor or collateral >= 120% of the loan.")
+				addError("down_payment", locale.Text("loan.error.down_payment.ratio"))
 			} else {
-				addWarning("Low down payment accepted due to guarantor/collateral support.")
+				addWarning(locale.Text("loan.warning.down_payment.support"))
 			}
 		}
 	}
@@ -231,21 +234,21 @@ func validateLoanForm(form dashboardviews.LoanFormData, hasEvaluated bool) dashb
 	if loanAmountOK && loanAmount > 250000 {
 		hasCoverage := form.HasGuarantor || (collateralValueOK && collateralValue >= loanAmount*1.1)
 		if !hasCoverage {
-			addError("loan_amount", "Amounts above EUR 250000 require guarantor or collateral >= 110%.")
+			addError("loan_amount", locale.Text("loan.error.loan_amount.coverage"))
 		}
 	}
 
 	if form.HasGuarantor && guarantorIncomeOK && annualIncomeOK {
 		ratio := guarantorIncome / annualIncome
 		if ratio < 0.2 {
-			addError("guarantor_income", "Guarantor income must be at least 20% of applicant income.")
+			addError("guarantor_income", locale.Text("loan.error.guarantor_income.ratio"))
 		} else if ratio < 0.3 {
-			addWarning("Guarantor income is between 20% and 30% of applicant income; this may slow approval.")
+			addWarning(locale.Text("loan.warning.guarantor_income.ratio"))
 		}
 	}
 
 	if form.Purpose == "business" && loanAmountOK && loanAmount > 150000 {
-		addWarning("Business-purpose loans above EUR 150000 usually require additional underwriting documents.")
+		addWarning(locale.Text("loan.warning.business.docs"))
 	}
 
 	state.IsValid = len(state.Errors) == 0
