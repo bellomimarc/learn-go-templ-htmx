@@ -1,0 +1,64 @@
+// Package dashboard contiene i template Templ per la dashboard gestionale.
+package dashboard
+
+templ Dashboard() {
+	@Layout("Dashboard") {
+		<div class="card">
+			<h2>Benvenuto nel PoC!</h2>
+			<p style="margin-top: 1rem; line-height: 1.6;">
+				Questo è un esempio di applicazione SaaS minimale costruita con:
+			</p>
+			<ul style="margin: 1rem 0 0 1.5rem; line-height: 2;">
+				<li><strong>Chi/v5:</strong> Router HTTP leggero e routing middleware</li>
+				<li><strong>Templ:</strong> Template HTML type-safe compilati in Go</li>
+				<li><strong>HTMX:</strong> Interattività frontend senza framework JS</li>
+				<li><strong>stdlib encoding/json:</strong> REST API con la libreria standard</li>
+			</ul>
+		</div>
+
+		<div class="card">
+			<h3>📡 Flusso di Comunicazione</h3>
+			<p style="margin-top: 1rem; line-height: 1.6;">
+				Clicca il bottone sottostante per triggerare una richiesta HTMX.
+				Il browser farà una GET a <code>/api/status</code> che restituirà un frammento HTML
+				(generato da Templ), e HTMX lo inserirà nel DOM senza reload della pagina.
+			</p>
+		</div>
+
+		<div class="card">
+			<h3>🎯 Componente Interattivo (HTMX + Templ)</h3>
+			<p style="margin-bottom: 1rem;">
+				<button 
+					hx-get="/api/status"
+					hx-target="#status-container"
+					hx-swap="innerHTML"
+				>
+					Carica lo Status
+					<span class="htmx-indicator spinner"></span>
+				</button>
+			</p>
+			<div id="status-container" style="margin-top: 1.5rem; padding: 1rem; background: #f5f5f5; border-radius: 6px; min-height: 3rem; display: flex; align-items: center; color: #999;">
+				Clicca il bottone per caricare lo status...
+			</div>
+		</div>
+
+		<div class="card">
+			<h3>🔗 Endpoint REST (API JSON)</h3>
+			<p style="margin-top: 1rem;">
+				Prova a visitare <a href="/api/info" style="color: #667eea; text-decoration: underline;">/api/info</a>
+				per vedere l'endpoint REST che restituisce un JSON puro (generato con encoding/json stdlib).
+			</p>
+		</div>
+
+		<div class="card" style="background: #f0f4ff; border-left: 4px solid #667eea;">
+			<strong>💡 Note Architetturali:</strong>
+			<ul style="margin: 1rem 0 0 1.5rem; line-height: 1.8;">
+				<li>Templ compila template in codice Go type-safe durante la build</li>
+				<li>HTMX comunica con Go handlers REST che restituiscono HTML parziali</li>
+				<li>Nessun database in questo PoC: focus su architettura web</li>
+				<li>Chi middleware fornisce logging e recovery automatico</li>
+				<li>La risposta da HTMX è sempre HTML: è il server che decide se render template o JSON</li>
+			</ul>
+		</div>
+	}
+}

@@ -1,0 +1,29 @@
+// Package website contiene i template Templ per la landing page pubblica.
+package website
+
+templ Landing() {
+	@Layout("Qomodo - Landing") {
+		<section class="hero">
+			<h1>Un'altra landing page, senza condividere la dashboard layout.</h1>
+			<p class="lead">
+				Questa pagina è separata dal blocco gestionale e usa un layout dedicato,
+				così puoi costruire una experience pubblica con stile, tono e struttura propri.
+			</p>
+			<div class="actions">
+				<a class="cta" href="/dashboard">Apri dashboard</a>
+				<a class="cta-secondary" href="/api/info">Vedi un endpoint JSON</a>
+			</div>
+		</section>
+
+		<section class="grid">
+			<div class="card">
+				<h2>Hero block</h2>
+				<p>Qui puoi mettere value proposition, proof points e una call to action principale.</p>
+			</div>
+			<div class="card">
+				<h2>Sezione feature</h2>
+				<p>Puoi aggiungere cards, pricing, testimonial o una form di contatto senza ereditare la UI interna.</p>
+			</div>
+		</section>
+	}
+}

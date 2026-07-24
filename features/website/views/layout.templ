@@ -1,0 +1,153 @@
+// Package website contiene i template Templ per la landing page pubblica.
+package website
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="it">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			<style>
+				:root {
+					color-scheme: dark;
+					--bg: #0b1020;
+					--bg-soft: #121a33;
+					--text: #eef2ff;
+					--muted: #9aa4c3;
+					--accent: #7c8cff;
+					--accent-strong: #5c6ef0;
+					--card: rgba(18, 26, 51, 0.82);
+					--border: rgba(154, 164, 195, 0.2);
+				}
+				* {
+					box-sizing: border-box;
+				}
+				body {
+					margin: 0;
+					font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+					color: var(--text);
+					min-height: 100vh;
+					background:
+						radial-gradient(circle at top left, rgba(124, 140, 255, 0.22), transparent 35%),
+						radial-gradient(circle at right top, rgba(102, 126, 234, 0.18), transparent 28%),
+						linear-gradient(180deg, #0b1020 0%, #070b16 100%);
+				}
+				.page-shell {
+					max-width: 1120px;
+					margin: 0 auto;
+					padding: 2rem 1.25rem 4rem;
+				}
+				nav {
+					display: flex;
+					justify-content: space-between;
+					align-items: center;
+					gap: 1rem;
+					padding: 1rem 0 2rem;
+				}
+				.brand {
+					font-size: 1.05rem;
+					font-weight: 700;
+					letter-spacing: 0.02em;
+				}
+				.badge {
+					padding: 0.45rem 0.75rem;
+					border: 1px solid var(--border);
+					border-radius: 999px;
+					color: var(--muted);
+					background: rgba(255, 255, 255, 0.04);
+					font-size: 0.9rem;
+				}
+				.hero {
+					padding: 4rem 0 2.5rem;
+				}
+				h1 {
+					font-size: clamp(2.6rem, 6vw, 5rem);
+					line-height: 0.95;
+					margin: 0;
+					max-width: 11ch;
+				}
+				.lead {
+					max-width: 58ch;
+					color: var(--muted);
+					font-size: 1.08rem;
+					line-height: 1.7;
+					margin: 1.25rem 0 0;
+				}
+				.actions {
+					display: flex;
+					gap: 0.9rem;
+					flex-wrap: wrap;
+					margin-top: 1.75rem;
+				}
+				.cta,
+				.cta-secondary {
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+					padding: 0.9rem 1.25rem;
+					border-radius: 12px;
+					text-decoration: none;
+					font-weight: 650;
+					transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+				}
+				.cta {
+					background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+					color: white;
+					box-shadow: 0 18px 40px rgba(92, 110, 240, 0.28);
+				}
+				.cta-secondary {
+					color: var(--text);
+					border: 1px solid var(--border);
+					background: rgba(255, 255, 255, 0.03);
+				}
+				.cta:hover,
+				.cta-secondary:hover {
+					transform: translateY(-1px);
+				}
+				.grid {
+					display: grid;
+					grid-template-columns: repeat(12, minmax(0, 1fr));
+					gap: 1rem;
+					margin-top: 2rem;
+				}
+				.card {
+					grid-column: span 6;
+					padding: 1.35rem;
+					border: 1px solid var(--border);
+					border-radius: 20px;
+					background: var(--card);
+					backdrop-filter: blur(12px);
+					box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+				}
+				.card h2 {
+					margin: 0 0 0.75rem;
+					font-size: 1.15rem;
+				}
+				.card p {
+					margin: 0;
+					color: var(--muted);
+					line-height: 1.65;
+				}
+				@media (max-width: 760px) {
+					nav {
+						align-items: flex-start;
+						flex-direction: column;
+					}
+					.card {
+						grid-column: span 12;
+					}
+				}
+			</style>
+		</head>
+		<body>
+			<div class="page-shell">
+				<nav>
+					<div class="brand">Qomodo Web</div>
+					<div class="badge">Landing pubblica dedicata</div>
+				</nav>
+				{ children... }
+			</div>
+		</body>
+	</html>
+}

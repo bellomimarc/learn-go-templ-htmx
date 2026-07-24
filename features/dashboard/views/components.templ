@@ -1,0 +1,41 @@
+// Package dashboard contiene i template Templ per la dashboard gestionale.
+package dashboard
+
+import "time"
+
+templ StatusComponent(status string, timestamp time.Time) {
+	<div style="padding: 1rem; background: #e8f5e9; border-radius: 6px; border: 1px solid #4caf50;">
+		<h4 style="color: #2e7d32; margin: 0;">✅ Status: { status }</h4>
+		<p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #558b2f;">
+			Ultimo aggiornamento: { timestamp.Format("02/01/2006 15:04:05") }
+		</p>
+		<p style="margin: 1rem 0 0 0; font-size: 0.85rem; color: #666;">
+			Questo frammento HTML è stato renderizzato dal server (Templ) e inviato via HTMX.
+			Il componente è type-safe: Go compiler verifica il template durante la compilazione.
+		</p>
+	</div>
+}
+
+templ AlertComponent(message string, severity string) {
+	<div 
+		style={
+			"padding: 1rem; border-radius: 6px; border: 1px solid; " +
+			getSeverityStyle(severity)
+		}
+	>
+		<strong>{ severity }</strong>: { message }
+	</div>
+}
+
+func getSeverityStyle(severity string) string {
+	switch severity {
+	case "error":
+		return "background: #ffebee; color: #c62828; border-color: #ef5350;"
+	case "warning":
+		return "background: #fff3e0; color: #e65100; border-color: #ffb74d;"
+	case "info":
+		return "background: #e3f2fd; color: #1565c0; border-color: #64b5f6;"
+	default:
+		return "background: #f5f5f5; color: #333; border-color: #bdbdbd;"
+	}
+}
