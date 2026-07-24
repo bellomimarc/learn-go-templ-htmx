@@ -3,10 +3,9 @@ package dashboard
 import (
 	"embed"
 	"encoding/json"
-	"fmt"
 	"path"
-	"sort"
 	"strings"
+	"sync"
 )
 
 //go:embed locales/*.json
@@ -25,6 +24,16 @@ type LanguageOption struct {
 var supportedLocales = map[string]struct{}{
 	"en": {},
 	"it": {},
+}
+
+var (
+	localeLoadOnce sync.Once
+	localeCache    map[string]map[string]string
+)
+
+var languageOptions = []LanguageOption{
+	{Code: "en", Label: "language.option.en"},
+	{Code: "it", Label: "language.option.it"},
 }
 
 func LoadLocale(code string) Locale {
@@ -47,12 +56,9 @@ func (locale Locale) Text(key string) string {
 }
 
 func (locale Locale) LanguageOptions() []LanguageOption {
-	options := []string{"en", "it"}
-	sort.Strings(options)
-
-	result := make([]LanguageOption, 0, len(options))
-	for _, code := range options {
-		result = append(result, LanguageOption{Code: code, Label: locale.Text("language.option." + code)})
+	result := make([]LanguageOption, 0, len(languageOptions))
+	for _, option := range languageOptions {
+		result = append(result, LanguageOption{Code: option.Code, Label: locale.Text(option.Label)})
 	}
 	return result
 }
@@ -66,7 +72,7 @@ func localizedPath(p string, locale Locale) string {
 	if strings.Contains(p, "?") {
 		separator = "&"
 	}
-	return fmt.Sprintf("%s%slang=%s", p, separator, code)
+	return p + separator + "lang=" + code
 }
 
 func normalizeLocaleCode(code string) string {
@@ -81,15 +87,31 @@ func normalizeLocaleCode(code string) string {
 }
 
 func loadLocaleStrings(code string) map[string]string {
+	localeLoadOnce.Do(preloadLocaleCache)
+	if strings, ok := localeCache[code]; ok {
+		return strings
+	}
+	return map[string]string{}
+}
+
+func preloadLocaleCache() {
+	cache := make(map[string]map[string]string, len(supportedLocales))
+	for code := range supportedLocales {
+		cache[code] = readLocaleFile(code)
+	}
+	localeCache = cache
+}
+
+func readLocaleFile(code string) map[string]string {
 	fileName := path.Join("locales", code+".json")
 	data, err := localeFS.ReadFile(fileName)
 	if err != nil {
 		return map[string]string{}
 	}
 
-	strings := map[string]string{}
-	if err := json.Unmarshal(data, &strings); err != nil {
+	localeStrings := map[string]string{}
+	if err := json.Unmarshal(data, &localeStrings); err != nil {
 		return map[string]string{}
 	}
-	return strings
+	return localeStrings
 }
