@@ -12,7 +12,10 @@ import (
 
 func RegisterRoutes(router chi.Router) {
 	router.Get("/dashboard", handleDashboard)
+	router.Get("/dashboard/loan", handleLoanApplicationPage)
 	router.Get("/api/status", handleStatus)
+	router.Post("/api/loan/validate", handleLoanValidation)
+	router.Post("/api/loan/submit", handleLoanSubmission)
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,362 @@
+// Package dashboard contiene i template Templ per la dashboard gestionale.
+package dashboard
+
+import "fmt"
+
+templ LoanApplicationPage(form LoanFormData, state LoanValidationState) {
+	@Layout("Loan Application Demo") {
+		<div class="card loan-card">
+			<h2>Reactive Loan Application</h2>
+			<p class="loan-subtitle">
+				Server-side validation with HTMX updates for cross-field business rules.
+			</p>
+			<p style="margin-top: 0.75rem;">
+				<a href="/dashboard" style="color: #667eea; text-decoration: underline;">Back to dashboard overview</a>
+			</p>
+		</div>
+
+		<div class="card loan-card">
+			<style>
+				.loan-card {
+					max-width: 980px;
+					margin-left: auto;
+					margin-right: auto;
+				}
+				.loan-subtitle {
+					margin-top: 0.75rem;
+					line-height: 1.6;
+					color: #4b4b4b;
+				}
+				.loan-grid {
+					display: grid;
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+					gap: 1rem;
+				}
+				.loan-field {
+					display: flex;
+					flex-direction: column;
+					gap: 0.4rem;
+				}
+				.loan-field--full {
+					grid-column: 1 / -1;
+				}
+				.loan-label {
+					font-size: 0.93rem;
+					font-weight: 600;
+					color: #303246;
+				}
+				.loan-input,
+				.loan-select {
+					width: 100%;
+					padding: 0.7rem 0.85rem;
+					border: 1px solid #cfd4e7;
+					border-radius: 8px;
+					font-size: 0.95rem;
+					transition: border-color 0.2s ease, box-shadow 0.2s ease;
+				}
+				.loan-input:focus,
+				.loan-select:focus {
+					outline: none;
+					border-color: #667eea;
+					box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.18);
+				}
+				.loan-input.is-invalid,
+				.loan-select.is-invalid {
+					border-color: #d32f2f;
+					background: #fff8f8;
+				}
+				.loan-hint {
+					font-size: 0.82rem;
+					color: #667085;
+				}
+				.loan-error {
+					font-size: 0.82rem;
+					color: #b3261e;
+					font-weight: 600;
+				}
+				.loan-check {
+					display: flex;
+					align-items: center;
+					gap: 0.6rem;
+					padding-top: 1.85rem;
+				}
+				.loan-actions {
+					margin-top: 1.2rem;
+					display: flex;
+					align-items: center;
+					gap: 1rem;
+				}
+				.loan-actions button[disabled] {
+					background: #9fa8da;
+					cursor: not-allowed;
+				}
+				.loan-live {
+					margin-top: 1.25rem;
+				}
+				.loan-panel {
+					background: #f8f9ff;
+					border: 1px solid #d8def8;
+					border-radius: 10px;
+					padding: 1rem;
+				}
+				.loan-panel h4 {
+					margin-bottom: 0.8rem;
+					color: #2b3360;
+				}
+				.loan-list {
+					margin-left: 1rem;
+					line-height: 1.6;
+				}
+				.loan-list--errors {
+					color: #a60f2d;
+				}
+				.loan-list--warnings {
+					color: #9a5a00;
+				}
+				.loan-metrics {
+					display: grid;
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+					gap: 0.8rem;
+					margin-top: 1rem;
+				}
+				.loan-metric {
+					padding: 0.8rem;
+					background: white;
+					border-radius: 8px;
+					border: 1px solid #e6e9f7;
+				}
+				.loan-metric-label {
+					display: block;
+					font-size: 0.8rem;
+					color: #52586f;
+				}
+				.loan-metric-value {
+					display: block;
+					margin-top: 0.25rem;
+					font-size: 1rem;
+					font-weight: 700;
+					color: #273051;
+				}
+				.loan-result {
+					margin-top: 1rem;
+				}
+				@media (max-width: 860px) {
+					.loan-grid,
+					.loan-metrics {
+						grid-template-columns: 1fr;
+					}
+				}
+			</style>
+
+			<form
+				id="loan-form"
+				hx-post="/api/loan/validate"
+				hx-trigger="input changed delay:250ms, change"
+				hx-target="#loan-live-feedback"
+				hx-swap="innerHTML"
+			>
+				<div class="loan-grid">
+					<div class="loan-field">
+						<label class="loan-label" for="full_name">Applicant Name</label>
+						<input class={ "loan-input " + loanInputClass(state, "full_name") } id="full_name" name="full_name" value={ form.FullName } placeholder="Mario Rossi"/>
+						@LoanFieldError(state, "full_name")
+					</div>
+					<div class="loan-field">
+						<label class="loan-label" for="birth_date">Birth Date</label>
+						<input class={ "loan-input " + loanInputClass(state, "birth_date") } id="birth_date" type="date" name="birth_date" value={ form.BirthDate }/>
+						@LoanFieldError(state, "birth_date")
+					</div>
+
+					<div class="loan-field">
+						<label class="loan-label" for="employment_type">Employment Type</label>
+						<select class={ "loan-select " + loanInputClass(state, "employment_type") } id="employment_type" name="employment_type">
+							<option value="">Select employment</option>
+							<option value="salaried" if form.EmploymentType == "salaried" { selected }>Salaried</option>
+							<option value="self_employed" if form.EmploymentType == "self_employed" { selected }>Self-employed</option>
+							<option value="contractor" if form.EmploymentType == "contractor" { selected }>Contractor</option>
+						</select>
+						@LoanFieldError(state, "employment_type")
+					</div>
+
+					<div class="loan-field">
+						<label class="loan-label" for="purpose">Purpose</label>
+						<select class="loan-select" id="purpose" name="purpose">
+							<option value="">Select purpose</option>
+							<option value="home_purchase" if form.Purpose == "home_purchase" { selected }>Home purchase</option>
+							<option value="home_renovation" if form.Purpose == "home_renovation" { selected }>Home renovation</option>
+							<option value="debt_consolidation" if form.Purpose == "debt_consolidation" { selected }>Debt consolidation</option>
+							<option value="business" if form.Purpose == "business" { selected }>Business investment</option>
+						</select>
+					</div>
+
+					<div class="loan-field">
+						<label class="loan-label" for="annual_income">Annual Income (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "annual_income") } id="annual_income" name="annual_income" value={ form.AnnualIncome } placeholder="42000"/>
+						@LoanFieldError(state, "annual_income")
+					</div>
+					<div class="loan-field">
+						<label class="loan-label" for="monthly_debt">Current Monthly Debt (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "monthly_debt") } id="monthly_debt" name="monthly_debt" value={ form.MonthlyDebt } placeholder="450"/>
+						@LoanFieldError(state, "monthly_debt")
+					</div>
+
+					<div class="loan-field">
+						<label class="loan-label" for="loan_amount">Requested Loan Amount (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "loan_amount") } id="loan_amount" name="loan_amount" value={ form.LoanAmount } placeholder="180000"/>
+						@LoanFieldError(state, "loan_amount")
+					</div>
+					<div class="loan-field">
+						<label class="loan-label" for="loan_years">Loan Duration (years)</label>
+						<input class={ "loan-input " + loanInputClass(state, "loan_years") } id="loan_years" name="loan_years" value={ form.LoanYears } placeholder="25"/>
+						@LoanFieldError(state, "loan_years")
+					</div>
+
+					<div class="loan-field">
+						<label class="loan-label" for="down_payment">Down Payment (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "down_payment") } id="down_payment" name="down_payment" value={ form.DownPayment } placeholder="20000"/>
+						<p class="loan-hint">Less than 10% requires guarantor or strong collateral.</p>
+						@LoanFieldError(state, "down_payment")
+					</div>
+					<div class="loan-field">
+						<label class="loan-label" for="collateral_value">Collateral Value (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "collateral_value") } id="collateral_value" name="collateral_value" value={ form.CollateralValue } placeholder="220000"/>
+						@LoanFieldError(state, "collateral_value")
+					</div>
+
+					<div class="loan-field loan-check">
+						<input id="has_guarantor" type="checkbox" name="has_guarantor" value="true" if form.HasGuarantor { checked }/>
+						<label class="loan-label" for="has_guarantor">Guarantor available</label>
+					</div>
+					<div class="loan-field">
+						<label class="loan-label" for="guarantor_income">Guarantor Annual Income (EUR)</label>
+						<input class={ "loan-input " + loanInputClass(state, "guarantor_income") } id="guarantor_income" name="guarantor_income" value={ form.GuarantorIncome } placeholder="30000"/>
+						@LoanFieldError(state, "guarantor_income")
+					</div>
+				</div>
+
+				<div class="loan-actions" id="loan-submit-controls">
+					@LoanSubmitControls(state)
+				</div>
+			</form>
+
+			<div class="loan-live" id="loan-live-feedback">
+				@LoanValidationPanel(state)
+			</div>
+			<div class="loan-result" id="loan-submit-result"></div>
+		</div>
+	}
+}
+
+templ LoanValidationResponse(state LoanValidationState) {
+	@LoanValidationPanel(state)
+	<div id="loan-submit-controls" hx-swap-oob="true" class="loan-actions">
+		@LoanSubmitControls(state)
+	</div>
+}
+
+templ LoanValidationPanel(state LoanValidationState) {
+	<div class="loan-panel">
+		<h4>Validation Feedback</h4>
+		if !state.HasEvaluated {
+			<p>Start typing to trigger live server-side checks across all dependent fields.</p>
+		} else {
+			if len(state.Errors) > 0 {
+				<p><strong>Blocking issues:</strong></p>
+				<ul class="loan-list loan-list--errors">
+					for _, issue := range state.Errors {
+						<li>{ issue.Message }</li>
+					}
+				</ul>
+			} else {
+				<p><strong>No blocking issues found.</strong> The form can be submitted.</p>
+			}
+
+			if len(state.Warnings) > 0 {
+				<p style="margin-top: 0.85rem;"><strong>Warnings:</strong></p>
+				<ul class="loan-list loan-list--warnings">
+					for _, warning := range state.Warnings {
+						<li>{ warning }</li>
+					}
+				</ul>
+			}
+
+			if state.TermMonths > 0 {
+				<div class="loan-metrics">
+					<div class="loan-metric">
+						<span class="loan-metric-label">Net monthly income</span>
+						<span class="loan-metric-value">{ formatCurrency(state.NetMonthlyIncome) }</span>
+					</div>
+					<div class="loan-metric">
+						<span class="loan-metric-label">Estimated installment</span>
+						<span class="loan-metric-value">{ formatCurrency(state.EstimatedInstallment) }</span>
+					</div>
+					<div class="loan-metric">
+						<span class="loan-metric-label">Debt-to-income ratio</span>
+						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.DebtToIncomeRatio) }</span>
+					</div>
+					<div class="loan-metric">
+						<span class="loan-metric-label">Employment max loan</span>
+						<span class="loan-metric-value">{ formatCurrency(state.MaximumLoanAmount) }</span>
+					</div>
+					<div class="loan-metric">
+						<span class="loan-metric-label">Down payment ratio</span>
+						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.DownPaymentRatio) }</span>
+					</div>
+					<div class="loan-metric">
+						<span class="loan-metric-label">Applied annual rate</span>
+						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.InterestRate) }</span>
+					</div>
+				</div>
+			}
+		}
+	</div>
+}
+
+templ LoanSubmitControls(state LoanValidationState) {
+	<button
+		type="button"
+		hx-post="/api/loan/submit"
+		hx-include="#loan-form"
+		hx-target="#loan-submit-result"
+		hx-swap="innerHTML"
+		if !state.IsValid {
+			disabled
+		}
+	>
+		Submit Application
+		<span class="htmx-indicator spinner"></span>
+	</button>
+	if state.HasEvaluated && !state.IsValid {
+		<span class="loan-hint">Submission is disabled until blocking issues are resolved.</span>
+	}
+}
+
+templ LoanFieldError(state LoanValidationState, field string) {
+	if msg := loanFieldError(state, field); msg != "" {
+		<p class="loan-error">{ msg }</p>
+	}
+}
+
+templ LoanSubmissionResult(message string, severity string) {
+	@AlertComponent(message, severity)
+}
+
+func loanFieldError(state LoanValidationState, field string) string {
+	for _, issue := range state.Errors {
+		if issue.Field == field {
+			return issue.Message
+		}
+	}
+	return ""
+}
+
+func loanInputClass(state LoanValidationState, field string) string {
+	if loanFieldError(state, field) != "" {
+		return "is-invalid"
+	}
+	return ""
+}
+
+func formatCurrency(value float64) string {
+	return fmt.Sprintf("EUR %.2f", value)
+}

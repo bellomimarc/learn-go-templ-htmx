@@ -70,7 +70,10 @@ func main() {
 📊 Routes:
 	GET  /                → Website landing (Full HTML page with Templ)
 	GET  /dashboard       → Dashboard (Full HTML page with Templ)
+	GET  /dashboard/loan  → Loan application demo (Reactive HTMX validation page)
    GET  /api/status      → Status component (HTMX endpoint, returns HTML fragment)
+	POST /api/loan/validate → Loan form cross-field validation (HTML fragment)
+	POST /api/loan/submit  → Loan form submission simulation (HTML fragment)
    GET  /api/info        → API Info (JSON REST endpoint)
    GET  /health          → Health check (JSON)
 
