@@ -26,6 +26,18 @@ templ AlertComponent(message string, severity string) {
 	</div>
 }
 
+templ RateLimitComponent(locale Locale) {
+	<div style="padding: 1rem; background: #ffe0e0; border-radius: 6px; border: 1px solid #f44336; text-align: center;">
+		<h4 style="color: #c62828; margin: 0;">⚠️ 429 Too Many Requests</h4>
+		<p style="margin: 0.75rem 0 0 0; font-size: 0.95rem; color: #d32f2f; font-weight: 500;">
+			{ locale.Text("status.rate_limit") }
+		</p>
+		<p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #666;">
+			Please wait before clicking again. HTMX 4 now swaps error responses!
+		</p>
+	</div>
+}
+
 func getSeverityStyle(severity string) string {
 	switch severity {
 	case "error":

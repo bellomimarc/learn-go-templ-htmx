@@ -31,6 +31,7 @@
   "status.updated": "Last updated:",
   "status.body": "This HTML fragment was rendered on the server with Templ and delivered via HTMX. The component is type-safe: the Go compiler verifies the template during compilation.",
   "status.online": "Online",
+  "status.rate_limit": "Too many requests! You clicked too fast. Try again after a moment.",
   "loan.title": "Loan Application Demo",
   "loan.heading": "Reactive Loan Application",
   "loan.subtitle": "Server-side validation with HTMX updates for cross-field business rules.",

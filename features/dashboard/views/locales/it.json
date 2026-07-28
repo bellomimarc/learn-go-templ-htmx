@@ -31,6 +31,7 @@
   "status.updated": "Ultimo aggiornamento:",
   "status.body": "Questo frammento HTML è stato renderizzato dal server con Templ e inviato via HTMX. Il componente è type-safe: il compilatore Go verifica il template durante la compilazione.",
   "status.online": "Online",
+  "status.rate_limit": "Troppi richieste! Hai cliccato troppo velocemente. Riprova tra un momento.",
   "loan.title": "Demo Loan Application",
   "loan.heading": "Reactive Loan Application",
   "loan.subtitle": "Validazione server-side con aggiornamenti HTMX per regole di business cross-field.",
