@@ -1,4 +1,4 @@
-.PHONY: help install generate build run test clean
+.PHONY: help install generate build run docker-build docker-run test clean
 
 help:
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -10,6 +10,8 @@ help:
 	@echo "  make generate     - Generate Templ code"
 	@echo "  make build        - Build the application"
 	@echo "  make run          - Run the application"
+	@echo "  make docker-build - Build Docker image"
+	@echo "  make docker-run   - Run Docker container"
 	@echo "  make dev          - Run with hot-reload (requires air)"
 	@echo "  make test         - Run tests"
 	@echo "  make clean        - Clean build artifacts"
@@ -34,6 +36,15 @@ build: generate
 run: generate
 	@echo "🚀 Starting server..."
 	go run ./cmd/server/
+
+docker-build:
+	@echo "🐳 Building Docker image..."
+	docker build -t saas-poc:latest .
+	@echo "✅ Docker image built: saas-poc:latest"
+
+docker-run:
+	@echo "🐳 Running Docker container on http://localhost:8080..."
+	docker run --rm -p 8080:8080 saas-poc:latest
 
 dev:
 	@echo "👀 Starting dev server with hot-reload..."
