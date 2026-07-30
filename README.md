@@ -26,18 +26,23 @@ Un proof-of-concept di applicazione SaaS minimale costruita in Go 1.22+ con il p
 
 ```
 learn-new-go-stack/
-├── main.go                    # Entry point + shared middleware/server setup
+├── cmd/
+│   └── server/
+│       └── main.go            # Entry point (aggiungere cmd/worker/, cmd/migrate/, ecc.)
+├── internal/
+│   ├── middleware/
+│   │   └── logging.go         # Custom logging middleware
+│   └── features/
+│       ├── website/
+│       │   ├── handlers.go    # Rotte + handler della landing pubblica
+│       │   └── views/         # Templ per il dominio website
+│       ├── dashboard/
+│       │   ├── handlers.go    # Rotte + handler dashboard/htmx
+│       │   └── views/         # Templ per il dominio dashboard
+│       └── system/
+│           └── handlers.go    # Endpoint trasversali JSON (/api/info, /health)
 ├── go.mod                     # Go module definition
 ├── go.sum                     # Dependency checksums
-├── features/
-│   ├── website/
-│   │   ├── handlers.go        # Rotte + handler della landing pubblica
-│   │   └── views/             # Templ per il dominio website
-│   ├── dashboard/
-│   │   ├── handlers.go        # Rotte + handler dashboard/htmx
-│   │   └── views/             # Templ per il dominio dashboard
-│   └── system/
-│       └── handlers.go        # Endpoint trasversali JSON (/api/info, /health)
 └── README.md                  # Questo file
 ```
 
@@ -65,12 +70,12 @@ go tool templ generate
 ```
 
 Questo crea file `.templ.go` vicino ai rispettivi `.templ` dentro ogni feature
-(`features/*/views/`).
+(`internal/features/*/views/`).
 
 ### 3. Avviare il Server
 
 ```bash
-go run main.go
+go run ./cmd/server/
 ```
 
 Output atteso:
@@ -168,36 +173,40 @@ Browser                         Go Server
 
 ## 📚 File Sorgente: Spiegazione
 
-### `main.go`
+### `cmd/server/main.go`
 
 - **Bootstrap del server**: setup Chi, middleware globali, configurazione `http.Server`.
 - **Composizione per feature**: registra rotte tramite `website.RegisterRoutes`, `dashboard.RegisterRoutes`, `system.RegisterRoutes`.
 
-### `features/website/handlers.go`
+### `internal/middleware/logging.go`
+
+- Custom middleware che logga metodo, path e IP di ogni richiesta.
+
+### `internal/features/website/handlers.go`
 
 - Rotta e handler per la landing pubblica (`GET /`).
 - Rendering della landing tramite template Templ locali del dominio website.
 
-### `features/dashboard/handlers.go`
+### `internal/features/dashboard/handlers.go`
 
 - Rotte e handler per dashboard (`GET /dashboard`) e frammento HTMX (`GET /api/status`).
 - Rendering dei componenti dashboard tramite template locali del dominio dashboard.
 
-### `features/system/handlers.go`
+### `internal/features/system/handlers.go`
 
 - Endpoint JSON cross-domain:
   - `GET /api/info`
   - `GET /health`
 - Include i modelli `StatusResponse` e `InfoResponse` vicino ai relativi handler.
 
-### `features/dashboard/views/layout.templ`
+### `internal/features/dashboard/views/layout.templ`
 
 - Wrapper HTML base con:
   - CDN HTMX caricato globalmente
   - Styling inline (gradiente, card, button, spinner animation)
   - Sezione `{ children... }` dove ogni pagina inietta contenuto
 
-### `features/dashboard/views/dashboard.templ`
+### `internal/features/dashboard/views/dashboard.templ`
 
 - Pagina completa che usa `@Layout("Dashboard")`
 - Contiene:
@@ -207,7 +216,7 @@ Browser                         Go Server
   - Link all'endpoint `/api/info`
   - Note architetturali sulla type-safety e separazione concerns
 
-### `features/dashboard/views/components.templ`
+### `internal/features/dashboard/views/components.templ`
 
 - Frammenti HTML riusabili:
   - `StatusComponent(status string, timestamp time.Time)`: Componente status con timestamp formattato
@@ -272,7 +281,7 @@ go tool templ generate
 ### 2. Rebuild & Run
 
 ```bash
-go build -o saas-poc
+go build -o saas-poc ./cmd/server/
 ./saas-poc
 ```
 

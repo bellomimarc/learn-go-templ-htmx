@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	dashboardviews "github.com/marcello/saas-poc/features/dashboard/views"
+	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
 
 	"github.com/go-chi/chi/v5"
 )

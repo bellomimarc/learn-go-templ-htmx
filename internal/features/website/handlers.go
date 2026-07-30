@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	websiteviews "github.com/marcello/saas-poc/features/website/views"
+	websiteviews "github.com/marcello/saas-poc/internal/features/website/views"
 
 	"github.com/go-chi/chi/v5"
 )

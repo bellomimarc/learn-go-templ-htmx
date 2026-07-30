@@ -2,56 +2,29 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/marcello/saas-poc/features/dashboard"
-	"github.com/marcello/saas-poc/features/system"
-	"github.com/marcello/saas-poc/features/website"
+	"github.com/marcello/saas-poc/internal/features/dashboard"
+	"github.com/marcello/saas-poc/internal/features/system"
+	"github.com/marcello/saas-poc/internal/features/website"
+	"github.com/marcello/saas-poc/internal/middleware"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-// ===============================================
-// Middleware (Custom Logic Layer)
-// ===============================================
-
-// loggingMiddleware è un middleware custom che logga informazioni della richiesta.
-// Chi fornisce già middleware standard (Logger, Recoverer), ma questo dimostra
-// come estendere con custom logic.
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("[%s] %s %s", r.Method, r.URL.Path, r.RemoteAddr)
-		next.ServeHTTP(w, r)
-	})
-}
-
-// ===============================================
-// Main: Setup Router e Start Server
-// ===============================================
-
 func main() {
-	// Creiamo un router Chi.
-	// Chi è un router HTTP minimalista che supporta middleware e nested routes.
 	router := chi.NewRouter()
 
-	// Middleware globali (applicati a tutte le rotte).
-	// Logger e Recoverer sono middleware standard forniti da Chi.
-	router.Use(middleware.Logger)    // Logga ogni richiesta HTTP
-	router.Use(middleware.Recoverer) // Recupera da panic durante request handling
-	router.Use(loggingMiddleware)    // Custom middleware
+	router.Use(chimiddleware.Logger)
+	router.Use(chimiddleware.Recoverer)
+	router.Use(middleware.Logging)
 
-	// Feature-level route registration keeps handlers and views grouped by domain.
 	website.RegisterRoutes(router)
 	dashboard.RegisterRoutes(router)
 	system.RegisterRoutes(router)
 
-	// ============ Server Start ============
-
-	// Configuriamo il server HTTP.
-	// Usiamo la stdlib net/http per minimizzare dipendenze esterne.
 	server := &http.Server{
 		Addr:         ":8080",
 		Handler:      router,
@@ -98,9 +71,7 @@ func main() {
 Press Ctrl+C to stop the server.
 	`)
 
-	// Avviamo il server.
-	// ListenAndServe è bloccante fino a errore o shutdown.
 	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("Server error: %v\n", err)
+		panic(err)
 	}
 }

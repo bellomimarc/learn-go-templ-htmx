@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode"
 
-	dashboardviews "github.com/marcello/saas-poc/features/dashboard/views"
+	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
 )
 
 func handleLoanApplicationPage(w http.ResponseWriter, r *http.Request) {

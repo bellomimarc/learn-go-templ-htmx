@@ -28,12 +28,12 @@ generate:
 
 build: generate
 	@echo "🏗️  Building application..."
-	go build -o saas-poc main.go
+	go build -o saas-poc ./cmd/server/
 	@echo "✅ Build complete: ./saas-poc"
 
 run: generate
 	@echo "🚀 Starting server..."
-	go run main.go
+	go run ./cmd/server/
 
 dev:
 	@echo "👀 Starting dev server with hot-reload..."
