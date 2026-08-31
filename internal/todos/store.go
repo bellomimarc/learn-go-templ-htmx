@@ -1,4 +1,4 @@
-package dashboard
+package todos
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrTodoNotFound = errors.New("todo not found")
+	ErrNotFound     = errors.New("todo not found")
 	ErrInvalidTitle = errors.New("todo title must not be blank")
 )
 
@@ -23,15 +23,23 @@ type Todo struct {
 	UpdatedAt time.Time
 }
 
-type TodoStore struct {
+type Store interface {
+	List(ctx context.Context) ([]Todo, error)
+	Create(ctx context.Context, title string) (Todo, error)
+	Rename(ctx context.Context, id int64, title string) (Todo, error)
+	Toggle(ctx context.Context, id int64) (Todo, error)
+	Delete(ctx context.Context, id int64) error
+}
+
+type PostgresStore struct {
 	pool *pgxpool.Pool
 }
 
-func NewTodoStore(pool *pgxpool.Pool) *TodoStore {
-	return &TodoStore{pool: pool}
+func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
+	return &PostgresStore{pool: pool}
 }
 
-func (store *TodoStore) List(ctx context.Context) ([]Todo, error) {
+func (store *PostgresStore) List(ctx context.Context) ([]Todo, error) {
 	rows, err := store.pool.Query(ctx, `
 		SELECT id, title, completed, created_at, updated_at
 		FROM todos
@@ -48,8 +56,8 @@ func (store *TodoStore) List(ctx context.Context) ([]Todo, error) {
 	return todos, nil
 }
 
-func (store *TodoStore) Create(ctx context.Context, title string) (Todo, error) {
-	title, err := validateTodoTitle(title)
+func (store *PostgresStore) Create(ctx context.Context, title string) (Todo, error) {
+	title, err := validateTitle(title)
 	if err != nil {
 		return Todo{}, err
 	}
@@ -60,8 +68,8 @@ func (store *TodoStore) Create(ctx context.Context, title string) (Todo, error) 
 		RETURNING id, title, completed, created_at, updated_at`, title))
 }
 
-func (store *TodoStore) Rename(ctx context.Context, id int64, title string) (Todo, error) {
-	title, err := validateTodoTitle(title)
+func (store *PostgresStore) Rename(ctx context.Context, id int64, title string) (Todo, error) {
+	title, err := validateTitle(title)
 	if err != nil {
 		return Todo{}, err
 	}
@@ -74,7 +82,7 @@ func (store *TodoStore) Rename(ctx context.Context, id int64, title string) (Tod
 	return todo, normalizeNotFound(err)
 }
 
-func (store *TodoStore) Toggle(ctx context.Context, id int64) (Todo, error) {
+func (store *PostgresStore) Toggle(ctx context.Context, id int64) (Todo, error) {
 	todo, err := scanTodo(store.pool.QueryRow(ctx, `
 		UPDATE todos
 		SET completed = NOT completed, updated_at = NOW()
@@ -83,13 +91,13 @@ func (store *TodoStore) Toggle(ctx context.Context, id int64) (Todo, error) {
 	return todo, normalizeNotFound(err)
 }
 
-func (store *TodoStore) Delete(ctx context.Context, id int64) error {
+func (store *PostgresStore) Delete(ctx context.Context, id int64) error {
 	result, err := store.pool.Exec(ctx, `DELETE FROM todos WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}
 	if result.RowsAffected() == 0 {
-		return ErrTodoNotFound
+		return ErrNotFound
 	}
 	return nil
 }
@@ -104,7 +112,7 @@ func scanTodo(row todoRow) (Todo, error) {
 	return todo, err
 }
 
-func validateTodoTitle(title string) (string, error) {
+func validateTitle(title string) (string, error) {
 	title = strings.TrimSpace(title)
 	if title == "" {
 		return "", ErrInvalidTitle
@@ -114,7 +122,7 @@ func validateTodoTitle(title string) (string, error) {
 
 func normalizeNotFound(err error) error {
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrTodoNotFound
+		return ErrNotFound
 	}
 	return err
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
+	"github.com/marcello/saas-poc/internal/todos"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -14,7 +15,7 @@ import (
 // Limit: 5 requests per 2 seconds per IP
 var statusLimiter = NewRateLimiter(5, 2*time.Second)
 
-func RegisterRoutes(router chi.Router, todoStore *TodoStore) {
+func RegisterRoutes(router chi.Router, todoStore todos.Store) {
 	router.Get("/dashboard", handleDashboard)
 	router.Get("/dashboard/loan", handleLoanApplicationPage)
 	router.Get("/dashboard/todos", handleTodoPage(todoStore))

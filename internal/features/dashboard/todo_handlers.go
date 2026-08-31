@@ -8,9 +8,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
+	"github.com/marcello/saas-poc/internal/todos"
 )
 
-func handleTodoPage(store *TodoStore) http.HandlerFunc {
+func handleTodoPage(store todos.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 		todos, err := store.List(r.Context())
@@ -26,10 +27,10 @@ func handleTodoPage(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func handleTodoCreate(store *TodoStore) http.HandlerFunc {
+func handleTodoCreate(store todos.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := store.Create(r.Context(), r.FormValue("title"))
-		if errors.Is(err, ErrInvalidTitle) {
+		if errors.Is(err, todos.ErrInvalidTitle) {
 			locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 			renderTodoRegion(w, r, store, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
 			return
@@ -42,7 +43,7 @@ func handleTodoCreate(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func handleTodoRename(store *TodoStore) http.HandlerFunc {
+func handleTodoRename(store todos.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
@@ -50,7 +51,7 @@ func handleTodoRename(store *TodoStore) http.HandlerFunc {
 		}
 
 		_, err := store.Rename(r.Context(), id, r.FormValue("title"))
-		if errors.Is(err, ErrInvalidTitle) {
+		if errors.Is(err, todos.ErrInvalidTitle) {
 			locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
 			renderTodoRegion(w, r, store, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
 			return
@@ -62,7 +63,7 @@ func handleTodoRename(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func handleTodoToggle(store *TodoStore) http.HandlerFunc {
+func handleTodoToggle(store todos.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
@@ -76,7 +77,7 @@ func handleTodoToggle(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func handleTodoDelete(store *TodoStore) http.HandlerFunc {
+func handleTodoDelete(store todos.Store) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
@@ -89,7 +90,7 @@ func handleTodoDelete(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func renderTodoRegion(w http.ResponseWriter, r *http.Request, store *TodoStore, message string, status int) {
+func renderTodoRegion(w http.ResponseWriter, r *http.Request, store todos.Store, message string, status int) {
 	todos, err := store.List(r.Context())
 	if err != nil {
 		writeTodoError(w, err)
@@ -104,7 +105,7 @@ func renderTodoRegion(w http.ResponseWriter, r *http.Request, store *TodoStore, 
 	}
 }
 
-func todoViews(todos []Todo) []dashboardviews.TodoView {
+func todoViews(todos []todos.Todo) []dashboardviews.TodoView {
 	result := make([]dashboardviews.TodoView, len(todos))
 	for index, todo := range todos {
 		result[index] = dashboardviews.TodoView{
@@ -129,7 +130,7 @@ func handleTodoMutationError(w http.ResponseWriter, err error) bool {
 	if err == nil {
 		return true
 	}
-	if errors.Is(err, ErrTodoNotFound) {
+	if errors.Is(err, todos.ErrNotFound) {
 		http.Error(w, "TODO not found", http.StatusNotFound)
 		return false
 	}

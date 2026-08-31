@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marcello/saas-poc/internal/todos"
 )
 
 func TestTodoCRUDLifecycle(t *testing.T) {
@@ -22,7 +23,7 @@ func TestTodoCRUDLifecycle(t *testing.T) {
 	assertStatus(t, response, http.StatusCreated)
 	assertBodyContains(t, response, "Write integration test")
 
-	var todo Todo
+	var todo todos.Todo
 	err := pool.QueryRow(context.Background(), `
 		SELECT id, title, completed, created_at, updated_at
 		FROM todos`).Scan(&todo.ID, &todo.Title, &todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
@@ -94,7 +95,7 @@ func setupTodoIntegrationTest(t *testing.T) (*pgxpool.Pool, http.Handler) {
 	}
 
 	router := chi.NewRouter()
-	RegisterRoutes(router, NewTodoStore(pool))
+	RegisterRoutes(router, todos.NewPostgresStore(pool))
 	return pool, router
 }
 

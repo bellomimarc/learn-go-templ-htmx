@@ -12,6 +12,7 @@ import (
 	"github.com/marcello/saas-poc/internal/features/system"
 	"github.com/marcello/saas-poc/internal/features/website"
 	"github.com/marcello/saas-poc/internal/middleware"
+	"github.com/marcello/saas-poc/internal/todos"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -43,7 +44,7 @@ func main() {
 	router.Use(middleware.Logging)
 
 	website.RegisterRoutes(router)
-	dashboard.RegisterRoutes(router, dashboard.NewTodoStore(pool))
+	dashboard.RegisterRoutes(router, todos.NewPostgresStore(pool))
 	system.RegisterRoutes(router)
 
 	server := &http.Server{
