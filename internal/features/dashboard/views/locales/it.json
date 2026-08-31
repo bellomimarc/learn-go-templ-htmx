@@ -13,7 +13,7 @@
   "dashboard.stack.htmx": "Interattività frontend senza framework JS",
   "dashboard.stack.json": "REST API con la libreria standard",
   "dashboard.communication.title": "Flusso di comunicazione",
-  "dashboard.communication.body": "Clicca il pulsante qui sotto per attivare una richiesta HTMX. Il browser farà una GET a /api/status e riceverà un frammento HTML generato da Templ, poi HTMX lo inserirà nel DOM senza ricaricare la pagina.",
+  "dashboard.communication.body": "Clicca il pulsante qui sotto per attivare una richiesta HTMX. Il browser farà una GET a /dashboard/status e riceverà un frammento HTML generato da Templ, poi HTMX lo inserirà nel DOM senza ricaricare la pagina.",
   "dashboard.communication.button": "Carica lo status",
   "dashboard.communication.placeholder": "Clicca il pulsante per caricare lo status...",
   "dashboard.rest.title": "Endpoint REST (API JSON)",

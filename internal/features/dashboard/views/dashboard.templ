@@ -27,7 +27,7 @@ templ Dashboard(locale Locale) {
 			<h3>🎯 Componente Interattivo (HTMX + Templ)</h3>
 			<p style="margin-bottom: 1rem;">
 				<button 
-					hx-get={ localizedPath("/api/status", locale) }
+					hx-get={ localizedPath("/dashboard/status", locale) }
 					hx-target="#status-container"
 					hx-swap="innerHTML"
 				>

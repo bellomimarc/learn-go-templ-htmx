@@ -45,7 +45,7 @@ templ TodoRegion(locale Locale, todos []TodoView, errorMessage string) {
 	<div id="todos-region">
 		<form
 			class="todo-create"
-			hx-post={ localizedPath("/api/todos", locale) }
+			hx-post={ localizedPath("/dashboard/todos", locale) }
 			hx-target="#todos-region"
 			hx-swap="outerHTML"
 		>
@@ -72,7 +72,7 @@ templ TodoItem(locale Locale, todo TodoView) {
 	<li id={ fmt.Sprintf("todo-%d", todo.ID) } class={ "todo-item", templ.KV("todo-item--completed", todo.Completed) }>
 		<form
 			class="todo-edit"
-			hx-put={ localizedPath(fmt.Sprintf("/api/todos/%d", todo.ID), locale) }
+			hx-put={ localizedPath(fmt.Sprintf("/dashboard/todos/%d", todo.ID), locale) }
 			hx-target="#todos-region"
 			hx-swap="outerHTML"
 		>
@@ -83,7 +83,7 @@ templ TodoItem(locale Locale, todo TodoView) {
 		<button
 			class="todo-action todo-action--secondary"
 			type="button"
-			hx-patch={ localizedPath(fmt.Sprintf("/api/todos/%d/toggle", todo.ID), locale) }
+			hx-patch={ localizedPath(fmt.Sprintf("/dashboard/todos/%d/toggle", todo.ID), locale) }
 			hx-target="#todos-region"
 			hx-swap="outerHTML"
 		>
@@ -96,7 +96,7 @@ templ TodoItem(locale Locale, todo TodoView) {
 		<button
 			class="todo-action todo-action--danger"
 			type="button"
-			hx-delete={ localizedPath(fmt.Sprintf("/api/todos/%d", todo.ID), locale) }
+			hx-delete={ localizedPath(fmt.Sprintf("/dashboard/todos/%d", todo.ID), locale) }
 			hx-target="#todos-region"
 			hx-swap="outerHTML"
 			hx-confirm={ locale.Text("todo.delete.confirm") }

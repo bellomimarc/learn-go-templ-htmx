@@ -26,12 +26,6 @@ func handleTodoPage(store *TodoStore) http.HandlerFunc {
 	}
 }
 
-func handleTodoList(store *TodoStore) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		renderTodoRegion(w, r, store, "", http.StatusOK)
-	}
-}
-
 func handleTodoCreate(store *TodoStore) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		_, err := store.Create(r.Context(), r.FormValue("title"))

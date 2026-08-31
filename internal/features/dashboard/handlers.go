@@ -10,7 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// statusLimiter enforces rate limiting on the /api/status endpoint
+// statusLimiter enforces rate limiting on the /dashboard/status endpoint
 // Limit: 5 requests per 2 seconds per IP
 var statusLimiter = NewRateLimiter(5, 2*time.Second)
 
@@ -18,14 +18,13 @@ func RegisterRoutes(router chi.Router, todoStore *TodoStore) {
 	router.Get("/dashboard", handleDashboard)
 	router.Get("/dashboard/loan", handleLoanApplicationPage)
 	router.Get("/dashboard/todos", handleTodoPage(todoStore))
-	router.Get("/api/status", handleStatus)
-	router.Post("/api/loan/validate", handleLoanValidation)
-	router.Post("/api/loan/submit", handleLoanSubmission)
-	router.Get("/api/todos", handleTodoList(todoStore))
-	router.Post("/api/todos", handleTodoCreate(todoStore))
-	router.Put("/api/todos/{id}", handleTodoRename(todoStore))
-	router.Patch("/api/todos/{id}/toggle", handleTodoToggle(todoStore))
-	router.Delete("/api/todos/{id}", handleTodoDelete(todoStore))
+	router.Get("/dashboard/status", handleStatus)
+	router.Post("/dashboard/loan/validate", handleLoanValidation)
+	router.Post("/dashboard/loan/submit", handleLoanSubmission)
+	router.Post("/dashboard/todos", handleTodoCreate(todoStore))
+	router.Put("/dashboard/todos/{id}", handleTodoRename(todoStore))
+	router.Patch("/dashboard/todos/{id}/toggle", handleTodoToggle(todoStore))
+	router.Delete("/dashboard/todos/{id}", handleTodoDelete(todoStore))
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {

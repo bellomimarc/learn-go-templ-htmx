@@ -18,7 +18,7 @@ import (
 func TestTodoCRUDLifecycle(t *testing.T) {
 	pool, router := setupTodoIntegrationTest(t)
 
-	response := todoRequest(t, router, http.MethodPost, "/api/todos", url.Values{"title": {"  Write integration test  "}})
+	response := todoRequest(t, router, http.MethodPost, "/dashboard/todos", url.Values{"title": {"  Write integration test  "}})
 	assertStatus(t, response, http.StatusCreated)
 	assertBodyContains(t, response, "Write integration test")
 
@@ -33,11 +33,11 @@ func TestTodoCRUDLifecycle(t *testing.T) {
 		t.Fatalf("unexpected created TODO: %+v", todo)
 	}
 
-	response = todoRequest(t, router, http.MethodGet, "/api/todos", nil)
+	response = todoRequest(t, router, http.MethodGet, "/dashboard/todos", nil)
 	assertStatus(t, response, http.StatusOK)
 	assertBodyContains(t, response, "Write integration test")
 
-	todoPath := "/api/todos/" + strconv.FormatInt(todo.ID, 10)
+	todoPath := "/dashboard/todos/" + strconv.FormatInt(todo.ID, 10)
 	response = todoRequest(t, router, http.MethodPut, todoPath, url.Values{"title": {"Ship integration test"}})
 	assertStatus(t, response, http.StatusOK)
 	assertBodyContains(t, response, "Ship integration test")
@@ -63,14 +63,14 @@ func TestTodoCRUDLifecycle(t *testing.T) {
 func TestTodoValidationAndMissingRecords(t *testing.T) {
 	_, router := setupTodoIntegrationTest(t)
 
-	response := todoRequest(t, router, http.MethodPost, "/api/todos?lang=it", url.Values{"title": {"   "}})
+	response := todoRequest(t, router, http.MethodPost, "/dashboard/todos?lang=it", url.Values{"title": {"   "}})
 	assertStatus(t, response, http.StatusUnprocessableEntity)
 	assertBodyContains(t, response, "Inserisci un titolo")
 
-	response = todoRequest(t, router, http.MethodPut, "/api/todos/999999", url.Values{"title": {"Missing"}})
+	response = todoRequest(t, router, http.MethodPut, "/dashboard/todos/999999", url.Values{"title": {"Missing"}})
 	assertStatus(t, response, http.StatusNotFound)
 
-	response = todoRequest(t, router, http.MethodPatch, "/api/todos/not-a-number/toggle", nil)
+	response = todoRequest(t, router, http.MethodPatch, "/dashboard/todos/not-a-number/toggle", nil)
 	assertStatus(t, response, http.StatusBadRequest)
 }
 

@@ -65,11 +65,10 @@ func main() {
 	GET  /                → Website landing (Full HTML page with Templ)
 	GET  /dashboard       → Dashboard (Full HTML page with Templ)
 	GET  /dashboard/loan  → Loan application demo (Reactive HTMX validation page)
-	GET  /dashboard/todos → PostgreSQL-backed TODO list
-   GET  /api/status      → Status component (HTMX endpoint, returns HTML fragment)
-	POST /api/loan/validate → Loan form cross-field validation (HTML fragment)
-	POST /api/loan/submit  → Loan form submission simulation (HTML fragment)
-	GET/POST/PUT/PATCH/DELETE /api/todos → TODO CRUD (HTML fragments)
+	GET/POST/PUT/PATCH/DELETE /dashboard/todos → PostgreSQL-backed TODO list
+	GET  /dashboard/status → Status component (HTMX endpoint, returns HTML fragment)
+	POST /dashboard/loan/validate → Loan form cross-field validation (HTML fragment)
+	POST /dashboard/loan/submit  → Loan form submission simulation (HTML fragment)
    GET  /api/info        → API Info (JSON REST endpoint)
    GET  /health          → Health check (JSON)
 
@@ -89,7 +88,7 @@ func main() {
    • Standard library for JSON encoding
 
 💡 Architecture:
-   • HTMX talks to /api/status → server renders partial HTML → browser updates DOM
+	• HTMX talks to /dashboard/status → server renders partial HTML → browser updates DOM
 	• TODO handlers use an injected pgx connection pool and return Templ fragments
    • Classic REST calls to /api/info → server returns JSON with stdlib
 	• Website landing and dashboard use separate Templ layouts

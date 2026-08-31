@@ -151,7 +151,7 @@ Permette di creare, rinominare, completare, riaprire ed eliminare TODO persistit
 #### Endpoint HTMX (Componente HTML)
 
 ```text
-GET http://localhost:8080/api/status
+GET http://localhost:8080/dashboard/status
 ```
 
 Restituisce un frammento HTML (`StatusComponent`) che HTMX inserisce nel DOM.
@@ -190,7 +190,7 @@ Browser                         Go Server
   │                                  │
   [User clicks "Carica Status"]      │
   │                                  │
-  ├──── HTMX: GET /api/status ────>│
+  ├──── HTMX: GET /dashboard/status ─>│
   │    (hx-get, hx-target)           │
   │                                  │
   │                         [Templ renders]
@@ -275,7 +275,7 @@ Browser                         Go Server
 - Pagina completa che usa `@Layout("Dashboard")`
 - Contiene:
   - Card didattica: intro al PoC
-  - Sezione HTMX con bottone che chiama `/api/status`
+  - Sezione HTMX con bottone che chiama `/dashboard/status`
   - Target div `#status-container` dove HTMX inserisce il componente
   - Link all'endpoint `/api/info`
   - Note architetturali sulla type-safety e separazione concerns

@@ -172,7 +172,7 @@ templ LoanApplicationPage(locale Locale, form LoanFormData, state LoanValidation
 
 			<form
 				id="loan-form"
-				hx-post={ localizedPath("/api/loan/validate", locale) }
+				hx-post={ localizedPath("/dashboard/loan/validate", locale) }
 				hx-trigger="input changed delay:250ms, change"
 				hx-target="#loan-live-feedback"
 				hx-swap="innerHTML"
@@ -344,7 +344,7 @@ templ LoanValidationPanel(locale Locale, state LoanValidationState) {
 templ LoanSubmitControls(locale Locale, state LoanValidationState) {
 	<button
 		type="button"
-		hx-post={ localizedPath("/api/loan/submit", locale) }
+		hx-post={ localizedPath("/dashboard/loan/submit", locale) }
 		hx-include="#loan-form"
 		hx-target="#loan-submit-result"
 		hx-swap="innerHTML"
