@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: saas_poc
+      POSTGRES_USER: saas_poc
+      POSTGRES_PASSWORD: saas_poc
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas_poc -d saas_poc"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  postgres-test:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: saas_poc_test
+      POSTGRES_USER: saas_poc
+      POSTGRES_PASSWORD: saas_poc
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U saas_poc -d saas_poc_test"]
+      interval: 1s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  postgres-data:

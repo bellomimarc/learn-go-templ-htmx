@@ -1,30 +1,31 @@
 # SaaS Gestionale PoC - Minimal Stack
 
-Un proof-of-concept di applicazione SaaS minimale costruita in Go 1.22+ con il più basso numero di dipendenze esterne possibili, ottimizzato per **compliance regolate** e **velocità di sviluppo early-stage**.
+Un proof-of-concept di applicazione SaaS minimale costruita in Go con rendering server-side, interazioni HTMX e persistenza PostgreSQL.
 
 ## 🎯 Obiettivi Architetturali
 
-- ✅ **Minimo di dipendenze**: Solo Chi v5 + Templ (no ORM, no full frameworks)
+- ✅ **Dipendenze mirate**: Chi v5 + Templ + pgx (no ORM, no full frameworks)
 - ✅ **Type-safety**: Templ compila template in Go code verificato dal compiler
 - ✅ **Interattività senza JS-heavy**: HTMX via CDN per UX reattiva
 - ✅ **REST API pura**: `encoding/json` della stdlib, nessun framework aggiuntivo
-- ✅ **Compliance-ready**: Niente database in questo PoC, focus su architettura web minimale
+- ✅ **Persistenza esplicita**: PostgreSQL 18 con query SQL parametrizzate e migrazioni Goose
 - ✅ **Pragmatico**: Codice leggibile e focalizzato sulla didattica
 
 ## 📦 Stack Tecnologico
 
 | Layer | Tecnologia | Uso |
-|-------|-----------|-----|
+| --- | --- | --- |
 | **Router HTTP** | `github.com/go-chi/chi/v5` | Routing leggero + middleware |
 | **Template Engine** | `github.com/a-h/templ` | HTML type-safe compilato in Go |
 | **Frontend** | HTMX (CDN) | Interattività senza framework JS |
 | **REST API** | `encoding/json` (stdlib) | Serialization JSON |
 | **HTTP Server** | `net/http` (stdlib) | Server HTTP nativo |
-| **Database** | — | Escludere volutamente da questo PoC |
+| **Database** | PostgreSQL 18 + pgx v5 | Persistenza senza ORM |
+| **Migrazioni** | Goose | Schema SQL versionato |
 
 ## 📁 Struttura Progetto
 
-```
+```text
 learn-new-go-stack/
 ├── cmd/
 │   └── server/
@@ -51,11 +52,26 @@ learn-new-go-stack/
 ### 1. Setup Iniziale
 
 ```bash
-cd /home/marcello/personal-repos/learn-new-go-stack
-go mod download
+make install
 ```
 
-### 2. Generare Codice da Templ
+### 2. Avviare PostgreSQL e applicare le migrazioni
+
+Docker Compose avvia PostgreSQL 18, attende l'health check e Goose applica le migrazioni:
+
+```bash
+make migrate
+```
+
+La connessione locale predefinita è:
+
+```text
+postgres://saas_poc:saas_poc@localhost:5432/saas_poc?sslmode=disable
+```
+
+Può essere sostituita impostando `DATABASE_URL` sia per `make migrate` sia per il server.
+
+### 3. Generare Codice da Templ
 
 Templ compila i file `.templ` in codice Go. Per installarlo come tool locale del progetto:
 
@@ -72,15 +88,15 @@ go tool templ generate
 Questo crea file `.templ.go` vicino ai rispettivi `.templ` dentro ogni feature
 (`internal/features/*/views/`).
 
-### 3. Avviare il Server
+### 4. Avviare il Server
 
 ```bash
-go run ./cmd/server/
+make run
 ```
 
 Output atteso:
 
-```
+```text
 ╔════════════════════════════════════════════════════════╗
 ║       SaaS Gestionale PoC - Minimal Stack 2026        ║
 ╚════════════════════════════════════════════════════════╝
@@ -88,43 +104,79 @@ Output atteso:
 📡 Server running on http://localhost:8080
 ```
 
-### 4. Testare l'Applicazione
+### 5. Testare l'Applicazione
+
+I test ordinari non richiedono un database:
+
+```bash
+make test
+```
+
+I test di integrazione avviano un PostgreSQL 18 isolato sulla porta `5433`, applicano le migrazioni, verificano il CRUD via HTTP e rimuovono il container:
+
+```bash
+make test-integration
+```
+
+Per fermare il database di sviluppo mantenendo i dati nel volume Docker:
+
+```bash
+make db-down
+```
 
 #### Landing Page (HTML via Templ)
-```
+
+```text
 GET http://localhost:8080/
 ```
+
 Renderizza la landing pubblica del dominio website.
 
 #### Dashboard Completa (HTML via Templ)
-```
+
+```text
 GET http://localhost:8080/dashboard
 ```
+
 Renderizza la dashboard con layout dedicato e interazione HTMX.
 
-#### Endpoint HTMX (Componente HTML)
+#### TODO List persistente
+
+```text
+GET http://localhost:8080/dashboard/todos
 ```
+
+Permette di creare, rinominare, completare, riaprire ed eliminare TODO persistiti in PostgreSQL.
+
+#### Endpoint HTMX (Componente HTML)
+
+```text
 GET http://localhost:8080/api/status
 ```
+
 Restituisce un frammento HTML (`StatusComponent`) che HTMX inserisce nel DOM.
 
 #### REST API (JSON)
-```
+
+```text
 GET http://localhost:8080/api/info
 ```
+
 Restituisce JSON strutturato con info sull'applicazione.
 
 #### Health Check
-```
+
+```text
 GET http://localhost:8080/health
 ```
+
 Endpoint di monitoraggio che restituisce JSON con status e uptime.
 
 ## 🔄 Flusso di Comunicazione
 
 ### HTMX + Templ Flow (Dashboard Interattiva)
 
-```
+```text
 Browser                         Go Server
   │                                  │
   ├──── GET /dashboard ────────────>│
@@ -155,7 +207,7 @@ Browser                         Go Server
 
 ### REST API Flow (JSON Endpoint)
 
-```
+```text
 Browser                         Go Server
   │                                  │
   ├──── GET /api/info ─────────────>│
@@ -189,7 +241,19 @@ Browser                         Go Server
 
 ### `internal/features/dashboard/handlers.go`
 
-- Rotte e handler per dashboard (`GET /dashboard`) e frammento HTMX (`GET /api/status`).
+- Registra le rotte dashboard, loan demo, status e TODO CRUD con store iniettato.
+
+### `internal/features/dashboard/todo_store.go`
+
+- Query PostgreSQL parametrizzate tramite `pgxpool` per list, create, rename, toggle e delete.
+
+### `internal/features/dashboard/todo_handlers.go`
+
+- Handler HTML/HTMX per la pagina TODO e tutte le operazioni CRUD.
+
+### `migrations/`
+
+- Migrazioni SQL reversibili gestite con Goose.
 - Rendering dei componenti dashboard tramite template locali del dominio dashboard.
 
 ### `internal/features/system/handlers.go`
@@ -245,11 +309,14 @@ templ StatusComponent(status string, timestamp time.Time) {
 
 Se provi a iniettare HTML in `status`, Templ lo escapa automaticamente. Non c'è risk di XSS se usi le features giuste di Templ.
 
-### Minimal External Dependencies
+### Dipendenze esterne mirate
 
-Solo 2 dipendenze go.sum (non contiamo stdlib):
-- Chi per routing
-- Templ per template
+Le dipendenze applicative principali sono:
+
+- Chi per il routing
+- Templ per i template type-safe
+- pgx per PostgreSQL
+- Goose per le migrazioni
 
 **Vantaggio**: Minore superficie di attacco, compliance più facile, audit delle dipendenze semplice.
 

@@ -48,6 +48,16 @@ templ Dashboard(locale Locale) {
 		</div>
 
 		<div class="card" style="background: #f7f8ff; border-left: 4px solid #5b6fd8;">
+			<h3>{ locale.Text("dashboard.todo.title") }</h3>
+			<p style="margin-top: 1rem; line-height: 1.6;">
+				{ locale.Text("dashboard.todo.body") }
+			</p>
+			<p style="margin-top: 1rem;">
+				<a href={ localizedPath("/dashboard/todos", locale) } style="color: #4f60bf; text-decoration: underline; font-weight: 600;">{ locale.Text("dashboard.todo.link") }</a>
+			</p>
+		</div>
+
+		<div class="card" style="background: #f7f8ff; border-left: 4px solid #5b6fd8;">
 			<h3>🧪 { locale.Text("dashboard.loan.title") }</h3>
 			<p style="margin-top: 1rem; line-height: 1.6;">
 				{ locale.Text("dashboard.loan.body") }

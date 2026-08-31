@@ -1,4 +1,7 @@
-.PHONY: help install generate build run docker-build docker-run test clean
+DATABASE_URL ?= postgres://saas_poc:saas_poc@localhost:5432/saas_poc?sslmode=disable
+TEST_DATABASE_URL ?= postgres://saas_poc:saas_poc@localhost:5433/saas_poc_test?sslmode=disable
+
+.PHONY: help install generate build run dev db-up db-down migrate migrate-down test test-integration docker-build docker-run clean
 
 help:
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -14,6 +17,11 @@ help:
 	@echo "  make docker-run   - Run Docker container"
 	@echo "  make dev          - Run with hot-reload (requires air)"
 	@echo "  make test         - Run tests"
+	@echo "  make db-up        - Start PostgreSQL 18 for development"
+	@echo "  make db-down      - Stop development PostgreSQL"
+	@echo "  make migrate      - Apply database migrations"
+	@echo "  make migrate-down - Roll back one database migration"
+	@echo "  make test-integration - Run TODO tests against PostgreSQL"
 	@echo "  make clean        - Clean build artifacts"
 	@echo ""
 
@@ -50,10 +58,35 @@ dev:
 	@echo "👀 Starting dev server with hot-reload..."
 	go tool air
 
+db-up:
+	@echo "Starting PostgreSQL 18..."
+	docker compose up -d --wait postgres
+
+db-down:
+	@echo "Stopping PostgreSQL..."
+	docker compose stop postgres
+
+migrate: db-up
+	@echo "Applying database migrations..."
+	go tool goose -dir migrations postgres "$(DATABASE_URL)" up
+
+migrate-down:
+	@echo "Rolling back one database migration..."
+	go tool goose -dir migrations postgres "$(DATABASE_URL)" down
+
 test: generate
 	@echo "🧪 Running tests..."
 	go test -v ./...
 	@echo "✅ Tests complete"
+
+test-integration: generate
+	@echo "Running TODO integration tests against PostgreSQL 18..."
+	@docker compose up -d --wait postgres-test; \
+	status=0; \
+	go tool goose -dir migrations postgres "$(TEST_DATABASE_URL)" up && \
+	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -v ./internal/features/dashboard || status=$$?; \
+	docker compose rm -sf postgres-test; \
+	exit $$status
 
 clean:
 	@echo "🧹 Cleaning up..."
