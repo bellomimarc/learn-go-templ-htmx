@@ -1,0 +1,104 @@
+// Package dashboard contiene i template Templ per la dashboard gestionale.
+package dashboard
+
+templ EventsPage(locale Locale) {
+	@Layout(locale.Text("events.title"), locale, "/dashboard/events") {
+		<div class="card events-shell">
+			<style>
+				.events-shell { max-width: 880px; margin-left: auto; margin-right: auto; }
+				.events-heading { display: flex; justify-content: space-between; align-items: start; gap: 1rem; margin-bottom: 1.5rem; }
+				.events-heading p { color: #52586f; margin-top: 0.4rem; line-height: 1.5; }
+				.events-back { color: #4f60bf; font-weight: 600; white-space: nowrap; }
+				.events-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+				.events-status { color: #667085; font-size: 0.95rem; }
+				.events-alert { margin-bottom: 1rem; padding: 0.9rem 1rem; background: #ecfdf3; border: 1px solid #75e0a7; border-left: 4px solid #12b76a; border-radius: 8px; color: #027a48; font-weight: 700; }
+				.events-list { display: grid; gap: 0.75rem; }
+				.event-box { padding: 1rem; background: #fafbff; border: 1px solid #d7dcef; border-radius: 8px; }
+				.event-box strong { display: block; color: #344054; margin-bottom: 0.4rem; }
+				.event-box time { display: block; color: #667085; font-size: 0.85rem; margin-top: 0.5rem; }
+				.events-empty { padding: 1.5rem; text-align: center; color: #667085; border: 1px dashed #cfd4e7; border-radius: 8px; }
+				@media (max-width: 680px) {
+					.events-heading { flex-direction: column; }
+					.events-controls { align-items: stretch; flex-direction: column; }
+					.events-controls button { width: 100%; }
+				}
+			</style>
+			<div class="events-heading">
+				<div>
+					<h2>{ locale.Text("events.heading") }</h2>
+					<p>{ locale.Text("events.subtitle") }</p>
+				</div>
+				<a class="events-back" href={ localizedPath("/dashboard", locale) }>{ locale.Text("events.back") }</a>
+			</div>
+			<div class="events-controls">
+				<button
+					type="button"
+					hx-post={ localizedPath("/dashboard/events", locale) }
+					hx-swap="none"
+				>
+					{ locale.Text("events.trigger") }
+					<span class="htmx-indicator spinner"></span>
+				</button>
+				<span id="events-status" class="events-status">{ locale.Text("events.connecting") }</span>
+			</div>
+			<div
+				id="events-config"
+				data-received-label={ locale.Text("events.received") }
+				data-open-label={ locale.Text("events.connected") }
+				data-closed-label={ locale.Text("events.disconnected") }
+				hidden
+			></div>
+			<div id="events-alert" aria-live="polite"></div>
+			<div id="events-list" class="events-list">
+				<p class="events-empty">{ locale.Text("events.empty") }</p>
+			</div>
+			<script>
+				(() => {
+					const stream = new EventSource("/dashboard/events/stream");
+					const config = document.getElementById("events-config").dataset;
+					const status = document.getElementById("events-status");
+					const alert = document.getElementById("events-alert");
+					const list = document.getElementById("events-list");
+					const receivedLabel = config.receivedLabel;
+					const openLabel = config.openLabel;
+					const closedLabel = config.closedLabel;
+
+					stream.addEventListener("open", () => {
+						status.textContent = openLabel;
+					});
+
+					stream.addEventListener("error", () => {
+						status.textContent = closedLabel;
+					});
+
+					stream.addEventListener("notification", (event) => {
+						const data = JSON.parse(event.data);
+						const empty = list.querySelector(".events-empty");
+						if (empty) {
+							empty.remove();
+						}
+
+						alert.replaceChildren();
+						const alertBox = document.createElement("div");
+						alertBox.className = "events-alert";
+						alertBox.textContent = receivedLabel + " #" + data.id;
+						alert.append(alertBox);
+
+						const box = document.createElement("article");
+						box.className = "event-box";
+
+						const title = document.createElement("strong");
+						title.textContent = receivedLabel + " #" + data.id;
+						const message = document.createElement("p");
+						message.textContent = data.message;
+						const time = document.createElement("time");
+						time.textContent = data.createdAt;
+
+						box.append(title, message, time);
+						list.prepend(box);
+					});
+				})();
+			</script>
+		</div>
+	}
+}

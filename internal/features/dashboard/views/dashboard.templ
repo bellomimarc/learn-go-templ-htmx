@@ -67,6 +67,16 @@ templ Dashboard(locale Locale) {
 			</p>
 		</div>
 
+		<div class="card" style="background: #f7f8ff; border-left: 4px solid #5b6fd8;">
+			<h3>📨 { locale.Text("dashboard.events.title") }</h3>
+			<p style="margin-top: 1rem; line-height: 1.6;">
+				{ locale.Text("dashboard.events.body") }
+			</p>
+			<p style="margin-top: 1rem;">
+				<a href={ localizedPath("/dashboard/events", locale) } style="color: #4f60bf; text-decoration: underline; font-weight: 600;">{ locale.Text("dashboard.events.link") }</a>
+			</p>
+		</div>
+
 		<div class="card" style="background: #f0f4ff; border-left: 4px solid #667eea;">
 			<strong>💡 { locale.Text("dashboard.arch.title") }:</strong>
 			<ul style="margin: 1rem 0 0 1.5rem; line-height: 1.8;">

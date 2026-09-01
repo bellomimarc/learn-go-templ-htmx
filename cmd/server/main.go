@@ -51,7 +51,7 @@ func main() {
 		Addr:         ":8080",
 		Handler:      router,
 		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		WriteTimeout: 20 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
@@ -65,6 +65,7 @@ func main() {
 📊 Routes:
 	GET  /                → Website landing (Full HTML page with Templ)
 	GET  /dashboard       → Dashboard (Full HTML page with Templ)
+	GET  /dashboard/events → Server-Sent Events demo (stream + broadcast button)
 	GET  /dashboard/loan  → Loan application demo (Reactive HTMX validation page)
 	GET/POST/PUT/PATCH/DELETE /dashboard/todos → PostgreSQL-backed TODO list
 	GET  /dashboard/status → Status component (HTMX endpoint, returns HTML fragment)

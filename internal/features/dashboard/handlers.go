@@ -14,9 +14,13 @@ import (
 // statusLimiter enforces rate limiting on the /dashboard/status endpoint
 // Limit: 5 requests per 2 seconds per IP
 var statusLimiter = NewRateLimiter(5, 2*time.Second)
+var eventBroker = newSSEBroker()
 
 func RegisterRoutes(router chi.Router, todoStore todos.Store) {
 	router.Get("/dashboard", handleDashboard)
+	router.Get("/dashboard/events", handleEventsPage)
+	router.Get("/dashboard/events/stream", handleEventsStream(eventBroker))
+	router.Post("/dashboard/events", handleEventTrigger(eventBroker))
 	router.Get("/dashboard/loan", handleLoanApplicationPage)
 	router.Get("/dashboard/todos", handleTodoPage(todoStore))
 	router.Get("/dashboard/status", handleStatus)
