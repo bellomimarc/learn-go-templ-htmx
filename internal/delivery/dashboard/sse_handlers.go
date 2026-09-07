@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
+	dashboardviews "github.com/marcello/saas-poc/internal/delivery/dashboard/views"
 )
 
 type sseEvent struct {

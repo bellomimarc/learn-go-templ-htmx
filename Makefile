@@ -84,7 +84,7 @@ test-integration: generate
 	@docker compose up -d --wait postgres-test; \
 	status=0; \
 	go tool goose -dir migrations postgres "$(TEST_DATABASE_URL)" up && \
-	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -v ./internal/features/dashboard || status=$$?; \
+	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -v ./internal/delivery/dashboard || status=$$?; \
 	docker compose rm -sf postgres-test; \
 	exit $$status
 

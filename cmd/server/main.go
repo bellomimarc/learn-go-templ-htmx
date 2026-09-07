@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/marcello/saas-poc/internal/features/dashboard"
-	"github.com/marcello/saas-poc/internal/features/system"
-	"github.com/marcello/saas-poc/internal/features/website"
+	"github.com/marcello/saas-poc/internal/delivery/dashboard"
+	"github.com/marcello/saas-poc/internal/delivery/system"
+	"github.com/marcello/saas-poc/internal/delivery/website"
 	"github.com/marcello/saas-poc/internal/middleware"
 	"github.com/marcello/saas-poc/internal/todos"
 

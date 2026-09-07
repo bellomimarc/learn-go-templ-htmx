@@ -33,7 +33,7 @@ learn-new-go-stack/
 ├── internal/
 │   ├── middleware/
 │   │   └── logging.go         # Custom logging middleware
-│   └── features/
+│   └── delivery/
 │       ├── website/
 │       │   ├── handlers.go    # Rotte + handler della landing pubblica
 │       │   └── views/         # Templ per il dominio website
@@ -85,8 +85,8 @@ Genera il codice:
 go tool templ generate
 ```
 
-Questo crea file `.templ.go` vicino ai rispettivi `.templ` dentro ogni feature
-(`internal/features/*/views/`).
+Questo crea file `.templ.go` vicino ai rispettivi `.templ` dentro ogni modulo di delivery
+(`internal/delivery/*/views/`).
 
 ### 4. Avviare il Server
 
@@ -234,20 +234,20 @@ Browser                         Go Server
 
 - Custom middleware che logga metodo, path e IP di ogni richiesta.
 
-### `internal/features/website/handlers.go`
+### `internal/delivery/website/handlers.go`
 
 - Rotta e handler per la landing pubblica (`GET /`).
 - Rendering della landing tramite template Templ locali del dominio website.
 
-### `internal/features/dashboard/handlers.go`
+### `internal/delivery/dashboard/handlers.go`
 
 - Registra le rotte dashboard, loan demo, status e TODO CRUD con store iniettato.
 
-### `internal/features/dashboard/todo_store.go`
+### `internal/delivery/dashboard/todo_store.go`
 
 - Query PostgreSQL parametrizzate tramite `pgxpool` per list, create, rename, toggle e delete.
 
-### `internal/features/dashboard/todo_handlers.go`
+### `internal/delivery/dashboard/todo_handlers.go`
 
 - Handler HTML/HTMX per la pagina TODO e tutte le operazioni CRUD.
 
@@ -256,21 +256,21 @@ Browser                         Go Server
 - Migrazioni SQL reversibili gestite con Goose.
 - Rendering dei componenti dashboard tramite template locali del dominio dashboard.
 
-### `internal/features/system/handlers.go`
+### `internal/delivery/system/handlers.go`
 
 - Endpoint JSON cross-domain:
   - `GET /api/info`
   - `GET /health`
 - Include i modelli `StatusResponse` e `InfoResponse` vicino ai relativi handler.
 
-### `internal/features/dashboard/views/layout.templ`
+### `internal/delivery/dashboard/views/layout.templ`
 
 - Wrapper HTML base con:
   - CDN HTMX caricato globalmente
   - Styling inline (gradiente, card, button, spinner animation)
   - Sezione `{ children... }` dove ogni pagina inietta contenuto
 
-### `internal/features/dashboard/views/dashboard.templ`
+### `internal/delivery/dashboard/views/dashboard.templ`
 
 - Pagina completa che usa `@Layout("Dashboard")`
 - Contiene:
@@ -280,7 +280,7 @@ Browser                         Go Server
   - Link all'endpoint `/api/info`
   - Note architetturali sulla type-safety e separazione concerns
 
-### `internal/features/dashboard/views/components.templ`
+### `internal/delivery/dashboard/views/components.templ`
 
 - Frammenti HTML riusabili:
   - `StatusComponent(status string, timestamp time.Time)`: Componente status con timestamp formattato

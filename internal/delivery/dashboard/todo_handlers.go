@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-	dashboardviews "github.com/marcello/saas-poc/internal/features/dashboard/views"
+	dashboardviews "github.com/marcello/saas-poc/internal/delivery/dashboard/views"
 	"github.com/marcello/saas-poc/internal/todos"
 )
 
