@@ -125,11 +125,7 @@ resource "zitadel_user_grant" "regular_user" {
   role_keys  = [zitadel_project_role.regular_user.role_key]
 }
 
-output "app_env" {
+output "client_id" {
   sensitive = true
-  value     = <<-EOT
-    ZITADEL_ISSUER=http://auth.localhost:8081
-    ZITADEL_CLIENT_ID=${zitadel_application_oidc.local.client_id}
-    APPLICATION_ORIGIN=http://localhost:8080
-  EOT
+  value     = zitadel_application_oidc.local.client_id
 }

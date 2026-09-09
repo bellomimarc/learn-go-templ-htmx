@@ -46,9 +46,9 @@ build: generate
 	go build -o saas-poc ./cmd/server/
 	@echo "✅ Build complete: ./saas-poc"
 
-run: idp-up generate
+run: db-up idp-up generate
 	@echo "🚀 Starting server..."
-	@set -a; . ./.zitadel/app.env; set +a; go run ./cmd/server/
+	@set -a; . ./.env; set +a; go run ./cmd/server/
 
 docker-build:
 	@echo "🐳 Building Docker image..."
@@ -59,9 +59,9 @@ docker-run:
 	@echo "🐳 Running Docker container on http://localhost:8080..."
 	docker run --rm -p 8080:8080 saas-poc:latest
 
-dev: idp-up
+dev: db-up idp-up
 	@echo "👀 Starting dev server with hot-reload..."
-	@set -a; . ./.zitadel/app.env; set +a; go tool air
+	@set -a; . ./.env; set +a; go tool air
 
 db-up:
 	@echo "Starting PostgreSQL 18..."
@@ -108,9 +108,13 @@ idp-env:
 
 idp-up: idp-env
 	@echo "Starting and configuring ZITADEL on http://auth.localhost:8081..."
+	@if [ ! -f .env ]; then cp .env.example .env; fi
 	@$(ZITADEL_COMPOSE) up -d --wait zitadel-proxy
 	@$(ZITADEL_COMPOSE) run --rm zitadel-config
-	@test -s .zitadel/app.env
+	@test -s .zitadel/client_id
+	@client_id="$$(cat .zitadel/client_id)"; \
+	tmp_file="$$(mktemp .env.XXXXXX)"; \
+	awk -v client_id="$$client_id" 'BEGIN { updated = 0 } /^ZITADEL_CLIENT_ID=/ { print "ZITADEL_CLIENT_ID=" client_id; updated = 1; next } { print } END { if (!updated) print "ZITADEL_CLIENT_ID=" client_id }' .env > "$$tmp_file" && mv "$$tmp_file" .env
 	@echo "ZITADEL is ready. Run 'make idp-credentials' for local logins."
 
 idp-down: idp-env

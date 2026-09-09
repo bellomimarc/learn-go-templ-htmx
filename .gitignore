@@ -43,3 +43,6 @@ tmp/
 
 # Local ZITADEL credentials and generated application configuration
 .zitadel/
+
+# Developer-local application environment
+.env
