@@ -8,6 +8,7 @@ import (
 	"time"
 
 	dashboardviews "github.com/marcello/saas-poc/internal/delivery/dashboard/views"
+	appformat "github.com/marcello/saas-poc/internal/format"
 	"github.com/marcello/saas-poc/internal/loans"
 )
 
@@ -55,16 +56,12 @@ func handleLoanSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	applicationID := fmt.Sprintf("LN-%d", time.Now().UnixNano()%1000000000)
-	message := strings.NewReplacer("{id}", applicationID, "{installment}", formatCents(state.EstimatedInstallment)).Replace(locale.Text("loan.submit.success"))
+	message := strings.NewReplacer("{id}", applicationID, "{installment}", appformat.FormatCents(state.EstimatedInstallment)).Replace(locale.Text("loan.submit.success"))
 
 	if err := dashboardviews.LoanSubmissionResult(locale, message, "info").Render(r.Context(), w); err != nil {
 		http.Error(w, "Error rendering submission response", http.StatusInternalServerError)
 		log.Printf("Error rendering submission response: %v\n", err)
 	}
-}
-
-func formatCents(value int64) string {
-	return fmt.Sprintf("%d.%02d", value/100, value%100)
 }
 
 func parseLoanFormData(r *http.Request) loans.FormData {

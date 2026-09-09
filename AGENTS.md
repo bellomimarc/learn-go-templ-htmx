@@ -40,6 +40,9 @@ HTTP handler -> service/domain logic -> repository -> PostgreSQL
 - Format changed Go files with `gofmt`.
 - Keep packages focused and use existing naming patterns: `RegisterRoutes`,
   `handle<Feature><Action>`, `New<Type>`, and `Err<Condition>`.
+- Keep reusable non-business helpers in cohesive, purpose-named `internal`
+  packages. Prefer packages such as `format` or `text` over catch-all
+  packages such as `common` or `utils`.
 - Represent money as integer minor units, such as cents, and rates as integer
   basis points. Do not use floating-point types for monetary values or rates;
   preserve the fixed-point scale during parsing, calculations, storage, and

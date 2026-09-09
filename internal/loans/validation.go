@@ -1,12 +1,13 @@
 package loans
 
 import (
-	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
+
+	appformat "github.com/marcello/saas-poc/internal/format"
+	apptext "github.com/marcello/saas-poc/internal/text"
 )
 
 type Messages interface {
@@ -65,7 +66,7 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 
 	if form.FullName == "" {
 		addError("full_name", messages.Text("loan.error.full_name.required"))
-	} else if nonSpaceChars(form.FullName) < 3 {
+	} else if apptext.CountNonSpaceChars(form.FullName) < 3 {
 		addError("full_name", messages.Text("loan.error.full_name.length"))
 	}
 
@@ -159,7 +160,7 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 	}
 
 	if annualIncomeOK && loanAmountOK && loanAmount > state.MaximumLoanAmount {
-		addError("loan_amount", strings.NewReplacer("{max}", formatCents(state.MaximumLoanAmount)).Replace(messages.Text("loan.error.loan_amount.cap")))
+		addError("loan_amount", strings.NewReplacer("{max}", appformat.FormatCents(state.MaximumLoanAmount)).Replace(messages.Text("loan.error.loan_amount.cap")))
 	}
 
 	if loanAmountOK && downPaymentOK {
@@ -356,18 +357,4 @@ func calculateMonthlyInstallment(principal int64, annualRate int64, termMonths i
 		quotient.Add(quotient, big.NewInt(1))
 	}
 	return quotient.Int64()
-}
-
-func formatCents(value int64) string {
-	return fmt.Sprintf("%d.%02d", value/100, value%100)
-}
-
-func nonSpaceChars(value string) int {
-	count := 0
-	for _, r := range value {
-		if !unicode.IsSpace(r) {
-			count++
-		}
-	}
-	return count
 }
