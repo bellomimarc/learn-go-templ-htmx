@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/marcello/saas-poc/internal/delivery/dashboard"
@@ -19,7 +22,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// preShutdownDelay keeps serving after SIGTERM while load balancers drop this
+// instance from their pool; preShutdownDelay + shutdownTimeout must stay below
+// the orchestrator grace period (Kubernetes terminationGracePeriodSeconds).
+const (
+	preShutdownDelay = 5 * time.Second
+	shutdownTimeout  = 20 * time.Second
+)
+
 func main() {
+	signalContext, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
+
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
 		databaseURL = "postgres://saas_poc:saas_poc@localhost:5432/saas_poc?sslmode=disable"
@@ -56,6 +70,7 @@ func main() {
 		WriteTimeout: 20 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
+	server.RegisterOnShutdown(dashboard.Shutdown)
 
 	fmt.Println(`
 ╔════════════════════════════════════════════════════════╗
@@ -100,7 +115,36 @@ func main() {
 Press Ctrl+C to stop the server.
 	`)
 
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		panic(err)
+	serverErrors := make(chan error, 1)
+	go func() {
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErrors:
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("serve HTTP: %v", err)
+		}
+	case <-signalContext.Done():
+		stopSignals()
+		log.Printf("shutdown signal received, waiting %s before draining connections", preShutdownDelay)
+		time.Sleep(preShutdownDelay)
+		log.Println("draining connections")
+
+		shutdownContext, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancelShutdown()
+
+		if err := server.Shutdown(shutdownContext); err != nil {
+			log.Printf("graceful shutdown incomplete: %v", err)
+			if err := server.Close(); err != nil {
+				log.Printf("force close listeners: %v", err)
+			}
+		}
+
+		if err := <-serverErrors; err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("serve HTTP: %v", err)
+		}
+
+		log.Println("shutdown complete")
 	}
 }

@@ -172,7 +172,42 @@ GET http://localhost:8080/health
 
 Endpoint di monitoraggio che restituisce JSON con status e uptime.
 
-## 🔄 Flusso di Comunicazione
+## � Shutdown Graceful
+
+Alla ricezione di `SIGINT` o `SIGTERM` il server esegue una sequenza ordinata
+(`cmd/server/main.go`):
+
+1. **Attesa di `preShutdownDelay` (5s)**: il server continua ad accettare
+   traffico. Serve in Kubernetes perché SIGTERM e la rimozione del pod dagli
+   endpoint del Service viaggiano su percorsi indipendenti: senza questa attesa
+   il pod può ricevere richieste dopo aver già chiuso il listener, con
+   `connection refused` durante i rollout.
+2. **`server.Shutdown(ctx)` con `shutdownTimeout` (20s)**: chiude i listener,
+   chiude le connessioni keep-alive inattive e attende le richieste in corso.
+   `RegisterOnShutdown` invoca `dashboard.Shutdown`, che chiude gli stream SSE
+   aperti: senza quel segnale gli stream long-lived resterebbero appesi fino
+   alla scadenza del timeout.
+3. **Fallback**: se il timeout scade, `Shutdown` restituisce errore e viene
+   chiamato `server.Close()` per forzare la chiusura delle connessioni residue.
+4. **`pool.Close()`**: il pool PostgreSQL viene chiuso e il processo esce con
+   codice `0`.
+
+### Relazione con il grace period dell'orchestratore
+
+Il vincolo da rispettare in fase di deploy è:
+
+```text
+preShutdownDelay + shutdownTimeout + margine < terminationGracePeriodSeconds
+```
+
+Con i valori attuali servono almeno ~30s di grace period. Il default di
+Kubernetes è proprio `terminationGracePeriodSeconds: 30`, quindi il margine è
+minimo: se il deployment abbassa quel valore, il kubelet invia `SIGKILL` prima
+che la sequenza finisca e si perdono la chiusura pulita del pool e i log finali.
+Se si alzano le costanti in `main.go`, va alzato di conseguenza anche il grace
+period nel manifest.
+
+## �🔄 Flusso di Comunicazione
 
 ### HTMX + Templ Flow (Dashboard Interattiva)
 

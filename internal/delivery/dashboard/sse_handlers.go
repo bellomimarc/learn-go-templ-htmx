@@ -21,13 +21,25 @@ type sseBroker struct {
 	mu          sync.Mutex
 	nextID      int64
 	subscribers map[chan sseEvent]struct{}
+	closing     chan struct{}
+	closingOnce sync.Once
 }
 
 const sseHeartbeatInterval = 15 * time.Second
 
 // this is a simple in memory SSE broker implementation, this is not suitable for horizontal scaling.
 func newSSEBroker() *sseBroker {
-	return &sseBroker{subscribers: map[chan sseEvent]struct{}{}}
+	return &sseBroker{
+		subscribers: map[chan sseEvent]struct{}{},
+		closing:     make(chan struct{}),
+	}
+}
+
+// shutdown releases every open stream so http.Server.Shutdown can drain them.
+func (broker *sseBroker) shutdown() {
+	broker.closingOnce.Do(func() {
+		close(broker.closing)
+	})
 }
 
 func (broker *sseBroker) subscribe() (chan sseEvent, func()) {
@@ -105,6 +117,10 @@ func handleEventsStream(broker *sseBroker) http.HandlerFunc {
 		for {
 			select {
 			case <-r.Context().Done():
+				return
+			case <-broker.closing:
+				fmt.Fprint(w, ": server shutting down\n\n")
+				flusher.Flush()
 				return
 			case <-keepAlive.C:
 				fmt.Fprint(w, ": keep-alive\n\n")

@@ -32,6 +32,11 @@ func RegisterRoutes(router chi.Router, todoService todos.TodoService) {
 	router.Delete("/dashboard/todos/{id}", handleTodoDelete(todoService))
 }
 
+// Shutdown ends long-lived dashboard streams so in-flight requests can drain.
+func Shutdown() {
+	eventBroker.shutdown()
+}
+
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))

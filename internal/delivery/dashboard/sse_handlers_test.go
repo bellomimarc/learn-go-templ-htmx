@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -21,6 +22,26 @@ func TestSSEBrokerPublishesToSubscribers(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("expected subscriber to receive event")
+	}
+}
+
+func TestSSEStreamStopsOnBrokerShutdown(t *testing.T) {
+	broker := newSSEBroker()
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/dashboard/events/stream", nil)
+
+	finished := make(chan struct{})
+	go func() {
+		handleEventsStream(broker)(recorder, request)
+		close(finished)
+	}()
+
+	broker.shutdown()
+
+	select {
+	case <-finished:
+	case <-time.After(time.Second):
+		t.Fatal("expected stream handler to return after broker shutdown")
 	}
 }
 
