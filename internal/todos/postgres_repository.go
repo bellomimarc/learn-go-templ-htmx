@@ -3,7 +3,6 @@ package todos
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -35,11 +34,6 @@ func (repository *PostgresTodoRepository) List(ctx context.Context) ([]Todo, err
 }
 
 func (repository *PostgresTodoRepository) Create(ctx context.Context, title string) (Todo, error) {
-	title, err := validateTitle(title)
-	if err != nil {
-		return Todo{}, err
-	}
-
 	return scanTodo(repository.pool.QueryRow(ctx, `
 		INSERT INTO todos (title)
 		VALUES ($1)
@@ -47,11 +41,6 @@ func (repository *PostgresTodoRepository) Create(ctx context.Context, title stri
 }
 
 func (repository *PostgresTodoRepository) Rename(ctx context.Context, id int64, title string) (Todo, error) {
-	title, err := validateTitle(title)
-	if err != nil {
-		return Todo{}, err
-	}
-
 	todo, err := scanTodo(repository.pool.QueryRow(ctx, `
 		UPDATE todos
 		SET title = $2, updated_at = NOW()
@@ -88,14 +77,6 @@ func scanTodo(row todoRow) (Todo, error) {
 	var todo Todo
 	err := row.Scan(&todo.ID, &todo.Title, &todo.Completed, &todo.CreatedAt, &todo.UpdatedAt)
 	return todo, err
-}
-
-func validateTitle(title string) (string, error) {
-	title = strings.TrimSpace(title)
-	if title == "" {
-		return "", ErrInvalidTitle
-	}
-	return title, nil
 }
 
 func normalizeNotFound(err error) error {

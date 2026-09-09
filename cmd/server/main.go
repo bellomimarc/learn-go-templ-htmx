@@ -44,7 +44,9 @@ func main() {
 	router.Use(middleware.Logging)
 
 	website.RegisterRoutes(router)
-	dashboard.RegisterRoutes(router, todos.NewPostgresTodoRepository(pool))
+	todoRepository := todos.NewPostgresTodoRepository(pool)
+	todoService := todos.NewTodoService(todoRepository)
+	dashboard.RegisterRoutes(router, todoService)
 	system.RegisterRoutes(router)
 
 	server := &http.Server{
@@ -91,7 +93,7 @@ func main() {
 
 💡 Architecture:
 	• HTMX talks to /dashboard/status → server renders partial HTML → browser updates DOM
-	• TODO handlers use an injected pgx connection pool and return Templ fragments
+	• TODO handlers call a service layer backed by a PostgreSQL repository
    • Classic REST calls to /api/info → server returns JSON with stdlib
 	• Website landing and dashboard use separate Templ layouts
 

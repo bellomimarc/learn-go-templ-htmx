@@ -11,10 +11,10 @@ import (
 	"github.com/marcello/saas-poc/internal/todos"
 )
 
-func handleTodoPage(repository todos.TodoRepository) http.HandlerFunc {
+func handleTodoPage(service todos.TodoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
-		todos, err := repository.List(r.Context())
+		todos, err := service.List(r.Context())
 		if err != nil {
 			writeTodoError(w, err)
 			return
@@ -27,71 +27,71 @@ func handleTodoPage(repository todos.TodoRepository) http.HandlerFunc {
 	}
 }
 
-func handleTodoCreate(repository todos.TodoRepository) http.HandlerFunc {
+func handleTodoCreate(service todos.TodoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		_, err := repository.Create(r.Context(), r.FormValue("title"))
+		_, err := service.Create(r.Context(), r.FormValue("title"))
 		if errors.Is(err, todos.ErrInvalidTitle) {
 			locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
-			renderTodoRegion(w, r, repository, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
+			renderTodoRegion(w, r, service, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
 			return
 		}
 		if err != nil {
 			writeTodoError(w, err)
 			return
 		}
-		renderTodoRegion(w, r, repository, "", http.StatusCreated)
+		renderTodoRegion(w, r, service, "", http.StatusCreated)
 	}
 }
 
-func handleTodoRename(repository todos.TodoRepository) http.HandlerFunc {
+func handleTodoRename(service todos.TodoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
 			return
 		}
 
-		_, err := repository.Rename(r.Context(), id, r.FormValue("title"))
+		_, err := service.Rename(r.Context(), id, r.FormValue("title"))
 		if errors.Is(err, todos.ErrInvalidTitle) {
 			locale := dashboardviews.LoadLocale(r.URL.Query().Get("lang"))
-			renderTodoRegion(w, r, repository, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
+			renderTodoRegion(w, r, service, locale.Text("todo.error.title_required"), http.StatusUnprocessableEntity)
 			return
 		}
 		if !handleTodoMutationError(w, err) {
 			return
 		}
-		renderTodoRegion(w, r, repository, "", http.StatusOK)
+		renderTodoRegion(w, r, service, "", http.StatusOK)
 	}
 }
 
-func handleTodoToggle(repository todos.TodoRepository) http.HandlerFunc {
+func handleTodoToggle(service todos.TodoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
 			return
 		}
-		_, err := repository.Toggle(r.Context(), id)
+		_, err := service.Toggle(r.Context(), id)
 		if !handleTodoMutationError(w, err) {
 			return
 		}
-		renderTodoRegion(w, r, repository, "", http.StatusOK)
+		renderTodoRegion(w, r, service, "", http.StatusOK)
 	}
 }
 
-func handleTodoDelete(repository todos.TodoRepository) http.HandlerFunc {
+func handleTodoDelete(service todos.TodoService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, ok := todoID(w, r)
 		if !ok {
 			return
 		}
-		if !handleTodoMutationError(w, repository.Delete(r.Context(), id)) {
+		if !handleTodoMutationError(w, service.Delete(r.Context(), id)) {
 			return
 		}
-		renderTodoRegion(w, r, repository, "", http.StatusOK)
+		renderTodoRegion(w, r, service, "", http.StatusOK)
 	}
 }
 
-func renderTodoRegion(w http.ResponseWriter, r *http.Request, repository todos.TodoRepository, message string, status int) {
-	todos, err := repository.List(r.Context())
+func renderTodoRegion(w http.ResponseWriter, r *http.Request, service todos.TodoService, message string, status int) {
+	todos, err := service.List(r.Context())
 	if err != nil {
 		writeTodoError(w, err)
 		return

@@ -16,20 +16,20 @@ import (
 var statusLimiter = NewRateLimiter(5, 2*time.Second)
 var eventBroker = newSSEBroker()
 
-func RegisterRoutes(router chi.Router, todoRepository todos.TodoRepository) {
+func RegisterRoutes(router chi.Router, todoService todos.TodoService) {
 	router.Get("/dashboard", handleDashboard)
 	router.Get("/dashboard/events", handleEventsPage)
 	router.Get("/dashboard/events/stream", handleEventsStream(eventBroker))
 	router.Post("/dashboard/events", handleEventTrigger(eventBroker))
 	router.Get("/dashboard/loan", handleLoanApplicationPage)
-	router.Get("/dashboard/todos", handleTodoPage(todoRepository))
+	router.Get("/dashboard/todos", handleTodoPage(todoService))
 	router.Get("/dashboard/status", handleStatus)
 	router.Post("/dashboard/loan/validate", handleLoanValidation)
 	router.Post("/dashboard/loan/submit", handleLoanSubmission)
-	router.Post("/dashboard/todos", handleTodoCreate(todoRepository))
-	router.Put("/dashboard/todos/{id}", handleTodoRename(todoRepository))
-	router.Patch("/dashboard/todos/{id}/toggle", handleTodoToggle(todoRepository))
-	router.Delete("/dashboard/todos/{id}", handleTodoDelete(todoRepository))
+	router.Post("/dashboard/todos", handleTodoCreate(todoService))
+	router.Put("/dashboard/todos/{id}", handleTodoRename(todoService))
+	router.Patch("/dashboard/todos/{id}/toggle", handleTodoToggle(todoService))
+	router.Delete("/dashboard/todos/{id}", handleTodoDelete(todoService))
 }
 
 func handleDashboard(w http.ResponseWriter, r *http.Request) {
