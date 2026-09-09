@@ -40,6 +40,10 @@ HTTP handler -> service/domain logic -> repository -> PostgreSQL
 - Format changed Go files with `gofmt`.
 - Keep packages focused and use existing naming patterns: `RegisterRoutes`,
   `handle<Feature><Action>`, `New<Type>`, and `Err<Condition>`.
+- Represent money as integer minor units, such as cents, and rates as integer
+  basis points. Do not use floating-point types for monetary values or rates;
+  preserve the fixed-point scale during parsing, calculations, storage, and
+  formatting.
 - Return errors to the layer that can handle them. Define stable domain errors
   in the domain package and inspect them with `errors.Is`.
 - Log unexpected errors with useful operation context, but return generic

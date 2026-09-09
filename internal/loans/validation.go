@@ -2,7 +2,7 @@ package loans
 
 import (
 	"fmt"
-	"math"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -40,12 +40,12 @@ type ValidationState struct {
 	HasEvaluated         bool
 	Errors               []ValidationIssue
 	Warnings             []string
-	NetMonthlyIncome     float64
-	EstimatedInstallment float64
+	NetMonthlyIncome     int64
+	EstimatedInstallment int64
 	DebtToIncomeRatio    float64
-	MaximumLoanAmount    float64
+	MaximumLoanAmount    int64
 	DownPaymentRatio     float64
-	InterestRate         float64
+	InterestRate         int64
 	TermMonths           int
 	IsValid              bool
 }
@@ -73,20 +73,20 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 		addError("employment_type", messages.Text("loan.error.employment_type.required"))
 	}
 
-	annualIncome, annualIncomeOK := parsePositiveFloat(form.AnnualIncome)
+	annualIncome, annualIncomeOK := parsePositiveCents(form.AnnualIncome)
 	if !annualIncomeOK {
 		addError("annual_income", messages.Text("loan.error.annual_income"))
 	}
 
-	monthlyDebt, monthlyDebtOK := parseNonNegativeFloat(form.MonthlyDebt)
+	monthlyDebt, monthlyDebtOK := parseNonNegativeCents(form.MonthlyDebt)
 	if !monthlyDebtOK {
 		addError("monthly_debt", messages.Text("loan.error.monthly_debt"))
 	}
 
-	loanAmount, loanAmountOK := parsePositiveFloat(form.LoanAmount)
+	loanAmount, loanAmountOK := parsePositiveCents(form.LoanAmount)
 	if !loanAmountOK {
 		addError("loan_amount", messages.Text("loan.error.loan_amount.positive"))
-	} else if loanAmount <= 100 {
+	} else if loanAmount <= 10000 {
 		addError("loan_amount", messages.Text("loan.error.loan_amount.minimum"))
 	}
 
@@ -95,28 +95,28 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 		addError("loan_years", messages.Text("loan.error.loan_years"))
 	}
 
-	downPayment, downPaymentOK := parseNonNegativeFloat(form.DownPayment)
+	downPayment, downPaymentOK := parseNonNegativeCents(form.DownPayment)
 	if !downPaymentOK {
 		addError("down_payment", messages.Text("loan.error.down_payment"))
 	}
 
-	collateralValue := 0.0
+	collateralValue := int64(0)
 	collateralValueOK := true
 	if form.CollateralValue != "" {
-		collateralValue, collateralValueOK = parseNonNegativeFloat(form.CollateralValue)
+		collateralValue, collateralValueOK = parseNonNegativeCents(form.CollateralValue)
 		if !collateralValueOK {
 			addError("collateral_value", messages.Text("loan.error.collateral_value"))
 		}
 	}
 
-	guarantorIncome := 0.0
+	guarantorIncome := int64(0)
 	guarantorIncomeOK := true
 	if form.HasGuarantor {
 		if form.GuarantorIncome == "" {
 			addError("guarantor_income", messages.Text("loan.error.guarantor_income.required"))
 			guarantorIncomeOK = false
 		} else {
-			guarantorIncome, guarantorIncomeOK = parsePositiveFloat(form.GuarantorIncome)
+			guarantorIncome, guarantorIncomeOK = parsePositiveCents(form.GuarantorIncome)
 			if !guarantorIncomeOK {
 				addError("guarantor_income", messages.Text("loan.error.guarantor_income.positive"))
 			}
@@ -154,31 +154,34 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 	}
 
 	if annualIncomeOK {
-		state.NetMonthlyIncome = annualIncome / 12.0
-		state.MaximumLoanAmount = annualIncome * employmentMultiplier(form.EmploymentType)
+		state.NetMonthlyIncome = annualIncome / 12
+		state.MaximumLoanAmount = employmentMultiplier(annualIncome, form.EmploymentType)
 	}
 
 	if annualIncomeOK && loanAmountOK && loanAmount > state.MaximumLoanAmount {
-		addError("loan_amount", strings.NewReplacer("{max}", fmt.Sprintf("%.2f", state.MaximumLoanAmount)).Replace(messages.Text("loan.error.loan_amount.cap")))
+		addError("loan_amount", strings.NewReplacer("{max}", formatCents(state.MaximumLoanAmount)).Replace(messages.Text("loan.error.loan_amount.cap")))
 	}
 
 	if loanAmountOK && downPaymentOK {
 		if downPayment > loanAmount {
 			addError("down_payment", messages.Text("loan.error.down_payment.gt_loan"))
 		} else if loanAmount > 0 {
-			state.DownPaymentRatio = (downPayment / loanAmount) * 100
+			state.DownPaymentRatio = (float64(downPayment) / float64(loanAmount)) * 100
 		}
 	}
 
 	if loanAmountOK && loanYearsOK {
 		state.InterestRate = estimateInterestRate(form.EmploymentType, loanYears)
 		state.TermMonths = loanYears * 12
-		financedAmount := math.Max(loanAmount-downPayment, 0)
+		financedAmount := loanAmount - downPayment
+		if financedAmount < 0 {
+			financedAmount = 0
+		}
 		state.EstimatedInstallment = calculateMonthlyInstallment(financedAmount, state.InterestRate, state.TermMonths)
 	}
 
 	if state.NetMonthlyIncome > 0 && monthlyDebtOK && state.EstimatedInstallment > 0 {
-		state.DebtToIncomeRatio = ((monthlyDebt + state.EstimatedInstallment) / state.NetMonthlyIncome) * 100
+		state.DebtToIncomeRatio = (float64(monthlyDebt+state.EstimatedInstallment) / float64(state.NetMonthlyIncome)) * 100
 		if state.DebtToIncomeRatio > 40 {
 			addError("monthly_debt", "Debt-to-income ratio exceeds 40% after adding this loan.")
 		} else if state.DebtToIncomeRatio > 35 {
@@ -188,7 +191,7 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 
 	if loanAmountOK && downPaymentOK {
 		if state.DownPaymentRatio < 10 {
-			hasStrongCollateral := collateralValueOK && collateralValue >= loanAmount*1.2
+			hasStrongCollateral := collateralValueOK && collateralValue >= (loanAmount*12)/10
 			if !form.HasGuarantor && !hasStrongCollateral {
 				addError("down_payment", messages.Text("loan.error.down_payment.ratio"))
 			} else {
@@ -197,15 +200,15 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 		}
 	}
 
-	if loanAmountOK && loanAmount > 250000 {
-		hasCoverage := form.HasGuarantor || (collateralValueOK && collateralValue >= loanAmount*1.1)
+	if loanAmountOK && loanAmount > 25000000 {
+		hasCoverage := form.HasGuarantor || (collateralValueOK && collateralValue >= (loanAmount*11)/10)
 		if !hasCoverage {
 			addError("loan_amount", messages.Text("loan.error.loan_amount.coverage"))
 		}
 	}
 
 	if form.HasGuarantor && guarantorIncomeOK && annualIncomeOK {
-		ratio := guarantorIncome / annualIncome
+		ratio := float64(guarantorIncome) / float64(annualIncome)
 		if ratio < 0.2 {
 			addError("guarantor_income", messages.Text("loan.error.guarantor_income.ratio"))
 		} else if ratio < 0.3 {
@@ -221,20 +224,54 @@ func Validate(form FormData, hasEvaluated bool, messages Messages) ValidationSta
 	return state
 }
 
-func parsePositiveFloat(raw string) (float64, bool) {
-	value, err := strconv.ParseFloat(strings.ReplaceAll(raw, ",", "."), 64)
-	if err != nil || value <= 0 {
+func parsePositiveCents(raw string) (int64, bool) {
+	value, ok := parseCents(raw)
+	if !ok || value <= 0 {
 		return 0, false
 	}
 	return value, true
 }
 
-func parseNonNegativeFloat(raw string) (float64, bool) {
-	value, err := strconv.ParseFloat(strings.ReplaceAll(raw, ",", "."), 64)
-	if err != nil || value < 0 {
+func parseNonNegativeCents(raw string) (int64, bool) {
+	value, ok := parseCents(raw)
+	if !ok || value < 0 {
 		return 0, false
 	}
 	return value, true
+}
+
+func parseCents(raw string) (int64, bool) {
+	raw = strings.TrimSpace(strings.ReplaceAll(raw, ",", "."))
+	parts := strings.Split(raw, ".")
+	if len(parts) > 2 || raw == "" || (len(parts) == 2 && len(parts[1]) > 2) {
+		return 0, false
+	}
+	if len(parts) == 2 && parts[0] == "" && parts[1] == "" {
+		return 0, false
+	}
+	whole := parts[0]
+	if whole == "" {
+		whole = "0"
+	}
+	fraction := ""
+	if len(parts) == 2 {
+		fraction = parts[1]
+	}
+	for len(fraction) < 2 {
+		fraction += "0"
+	}
+	wholeValue, err := strconv.ParseInt(whole, 10, 64)
+	if err != nil || wholeValue < 0 {
+		return 0, false
+	}
+	fractionValue, err := strconv.ParseInt(fraction, 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	if wholeValue > (int64(^uint64(0)>>1)-fractionValue)/100 {
+		return 0, false
+	}
+	return wholeValue*100 + fractionValue, true
 }
 
 func parsePositiveInt(raw string) (int, bool) {
@@ -264,47 +301,65 @@ func yearsSince(birthDate time.Time, now time.Time) int {
 	return years
 }
 
-func employmentMultiplier(employmentType string) float64 {
+func employmentMultiplier(annualIncome int64, employmentType string) int64 {
+	multiplierNumerator := int64(3)
+	multiplierDenominator := int64(1)
 	switch employmentType {
 	case "salaried":
-		return 6.0
+		multiplierNumerator = 6
 	case "self_employed":
-		return 4.5
+		multiplierNumerator = 9
+		multiplierDenominator = 2
 	case "contractor":
-		return 3.5
-	default:
-		return 3.0
+		multiplierNumerator = 7
+		multiplierDenominator = 2
 	}
+	return (annualIncome * multiplierNumerator) / multiplierDenominator
 }
 
-func estimateInterestRate(employmentType string, loanYears int) float64 {
-	rate := 5.2
+func estimateInterestRate(employmentType string, loanYears int) int64 {
+	rate := int64(520)
 	switch employmentType {
 	case "salaried":
-		rate = 4.5
+		rate = 450
 	case "self_employed":
-		rate = 5.4
+		rate = 540
 	case "contractor":
-		rate = 5.9
+		rate = 590
 	}
 	if loanYears > 20 {
-		rate += 0.35
+		rate += 35
 	}
 	return rate
 }
 
-func calculateMonthlyInstallment(principal float64, annualRate float64, termMonths int) float64 {
+func calculateMonthlyInstallment(principal int64, annualRate int64, termMonths int) int64 {
 	if principal <= 0 || termMonths <= 0 {
 		return 0
 	}
 
-	monthlyRate := (annualRate / 100.0) / 12.0
-	if monthlyRate == 0 {
-		return principal / float64(termMonths)
+	monthlyRate := new(big.Rat).SetFrac(big.NewInt(annualRate), big.NewInt(120000))
+	if monthlyRate.Sign() == 0 {
+		return principal / int64(termMonths)
 	}
 
-	factor := math.Pow(1+monthlyRate, float64(termMonths))
-	return principal * ((monthlyRate * factor) / (factor - 1))
+	factor := new(big.Rat).Add(big.NewRat(1, 1), monthlyRate)
+	base := new(big.Rat).Set(factor)
+	for month := 1; month < termMonths; month++ {
+		factor.Mul(factor, base)
+	}
+	installment := new(big.Rat).Mul(monthlyRate, factor)
+	installment.Quo(installment, new(big.Rat).Sub(factor, big.NewRat(1, 1)))
+	installment.Mul(installment, big.NewRat(principal, 1))
+	quotient, remainder := new(big.Int).QuoRem(installment.Num(), installment.Denom(), new(big.Int))
+	if new(big.Int).Mul(remainder, big.NewInt(2)).Cmp(installment.Denom()) >= 0 {
+		quotient.Add(quotient, big.NewInt(1))
+	}
+	return quotient.Int64()
+}
+
+func formatCents(value int64) string {
+	return fmt.Sprintf("%d.%02d", value/100, value%100)
 }
 
 func nonSpaceChars(value string) int {

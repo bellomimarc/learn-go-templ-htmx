@@ -333,7 +333,7 @@ templ LoanValidationPanel(locale Locale, state LoanValidationState) {
 					</div>
 					<div class="loan-metric">
 						<span class="loan-metric-label">{ locale.Text("loan.metric.rate") }</span>
-						<span class="loan-metric-value">{ fmt.Sprintf("%.2f%%", state.InterestRate) }</span>
+						<span class="loan-metric-value">{ formatRate(state.InterestRate) }</span>
 					</div>
 				</div>
 			}
@@ -386,8 +386,12 @@ func loanInputClass(state LoanValidationState, field string) string {
 	return ""
 }
 
-func formatCurrency(value float64) string {
-	return fmt.Sprintf("EUR %.2f", value)
+func formatCurrency(value int64) string {
+	return fmt.Sprintf("EUR %d.%02d", value/100, value%100)
+}
+
+func formatRate(value int64) string {
+	return fmt.Sprintf("%d.%02d%%", value/100, value%100)
 }
 
 func maxBirthDate() string {
