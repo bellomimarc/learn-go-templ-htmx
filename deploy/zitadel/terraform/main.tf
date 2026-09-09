@@ -106,6 +106,11 @@ resource "zitadel_org_member" "super_admin" {
   roles   = ["ORG_OWNER"]
 }
 
+resource "zitadel_instance_member" "super_admin" {
+  user_id = zitadel_human_user.super_admin.id
+  roles   = ["IAM_OWNER"]
+}
+
 resource "zitadel_user_grant" "super_admin" {
   org_id     = zitadel_org.local.id
   project_id = zitadel_project.local.id
