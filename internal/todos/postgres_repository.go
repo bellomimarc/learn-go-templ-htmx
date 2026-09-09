@@ -4,43 +4,21 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var (
-	ErrNotFound     = errors.New("todo not found")
-	ErrInvalidTitle = errors.New("todo title must not be blank")
-)
-
-type Todo struct {
-	ID        int64
-	Title     string
-	Completed bool
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
-type Store interface {
-	List(ctx context.Context) ([]Todo, error)
-	Create(ctx context.Context, title string) (Todo, error)
-	Rename(ctx context.Context, id int64, title string) (Todo, error)
-	Toggle(ctx context.Context, id int64) (Todo, error)
-	Delete(ctx context.Context, id int64) error
-}
-
-type PostgresStore struct {
+type PostgresTodoRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
-	return &PostgresStore{pool: pool}
+func NewPostgresTodoRepository(pool *pgxpool.Pool) *PostgresTodoRepository {
+	return &PostgresTodoRepository{pool: pool}
 }
 
-func (store *PostgresStore) List(ctx context.Context) ([]Todo, error) {
-	rows, err := store.pool.Query(ctx, `
+func (repository *PostgresTodoRepository) List(ctx context.Context) ([]Todo, error) {
+	rows, err := repository.pool.Query(ctx, `
 		SELECT id, title, completed, created_at, updated_at
 		FROM todos
 		ORDER BY created_at DESC, id DESC`)
@@ -56,25 +34,25 @@ func (store *PostgresStore) List(ctx context.Context) ([]Todo, error) {
 	return todos, nil
 }
 
-func (store *PostgresStore) Create(ctx context.Context, title string) (Todo, error) {
+func (repository *PostgresTodoRepository) Create(ctx context.Context, title string) (Todo, error) {
 	title, err := validateTitle(title)
 	if err != nil {
 		return Todo{}, err
 	}
 
-	return scanTodo(store.pool.QueryRow(ctx, `
+	return scanTodo(repository.pool.QueryRow(ctx, `
 		INSERT INTO todos (title)
 		VALUES ($1)
 		RETURNING id, title, completed, created_at, updated_at`, title))
 }
 
-func (store *PostgresStore) Rename(ctx context.Context, id int64, title string) (Todo, error) {
+func (repository *PostgresTodoRepository) Rename(ctx context.Context, id int64, title string) (Todo, error) {
 	title, err := validateTitle(title)
 	if err != nil {
 		return Todo{}, err
 	}
 
-	todo, err := scanTodo(store.pool.QueryRow(ctx, `
+	todo, err := scanTodo(repository.pool.QueryRow(ctx, `
 		UPDATE todos
 		SET title = $2, updated_at = NOW()
 		WHERE id = $1
@@ -82,8 +60,8 @@ func (store *PostgresStore) Rename(ctx context.Context, id int64, title string) 
 	return todo, normalizeNotFound(err)
 }
 
-func (store *PostgresStore) Toggle(ctx context.Context, id int64) (Todo, error) {
-	todo, err := scanTodo(store.pool.QueryRow(ctx, `
+func (repository *PostgresTodoRepository) Toggle(ctx context.Context, id int64) (Todo, error) {
+	todo, err := scanTodo(repository.pool.QueryRow(ctx, `
 		UPDATE todos
 		SET completed = NOT completed, updated_at = NOW()
 		WHERE id = $1
@@ -91,8 +69,8 @@ func (store *PostgresStore) Toggle(ctx context.Context, id int64) (Todo, error) 
 	return todo, normalizeNotFound(err)
 }
 
-func (store *PostgresStore) Delete(ctx context.Context, id int64) error {
-	result, err := store.pool.Exec(ctx, `DELETE FROM todos WHERE id = $1`, id)
+func (repository *PostgresTodoRepository) Delete(ctx context.Context, id int64) error {
+	result, err := repository.pool.Exec(ctx, `DELETE FROM todos WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}

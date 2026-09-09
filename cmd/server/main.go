@@ -44,7 +44,7 @@ func main() {
 	router.Use(middleware.Logging)
 
 	website.RegisterRoutes(router)
-	dashboard.RegisterRoutes(router, todos.NewPostgresStore(pool))
+	dashboard.RegisterRoutes(router, todos.NewPostgresTodoRepository(pool))
 	system.RegisterRoutes(router)
 
 	server := &http.Server{

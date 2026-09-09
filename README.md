@@ -241,11 +241,11 @@ Browser                         Go Server
 
 ### `internal/delivery/dashboard/handlers.go`
 
-- Registra le rotte dashboard, loan demo, status e TODO CRUD con store iniettato.
+- Registra le rotte dashboard, loan demo, status e TODO CRUD con repository iniettato.
 
-### `internal/delivery/dashboard/todo_store.go`
+### `internal/todos/repository.go` e `internal/todos/postgres_repository.go`
 
-- Query PostgreSQL parametrizzate tramite `pgxpool` per list, create, rename, toggle e delete.
+- Definisce il contratto `TodoRepository` e l'implementazione PostgreSQL con query parametrizzate tramite `pgxpool` per list, create, rename, toggle e delete.
 
 ### `internal/delivery/dashboard/todo_handlers.go`
 
