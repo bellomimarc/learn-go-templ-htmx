@@ -5,6 +5,7 @@
   "layout.title.suffix": "SaaS",
   "layout.brand": "SaaS POC",
   "layout.subtitle": "Minimal Stack: Go + Chi + Templ + HTMX",
+  "auth.logout": "Sign out",
   "dashboard.title": "Dashboard",
   "dashboard.welcome.title": "Welcome to the PoC!",
   "dashboard.welcome.body": "This is an example of a minimal SaaS application built with:",

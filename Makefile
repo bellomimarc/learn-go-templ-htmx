@@ -1,7 +1,8 @@
 DATABASE_URL ?= postgres://saas_poc:saas_poc@localhost:5432/saas_poc?sslmode=disable
 TEST_DATABASE_URL ?= postgres://saas_poc:saas_poc@localhost:5433/saas_poc_test?sslmode=disable
+ZITADEL_COMPOSE = docker compose --project-name saas-poc-zitadel --env-file .zitadel/zitadel.env -f deploy/zitadel/docker-compose.yml
 
-.PHONY: help install generate build run dev db-up db-down migrate migrate-down test test-integration docker-build docker-run clean
+.PHONY: help install generate build run dev db-up db-down migrate migrate-down test test-integration docker-build docker-run idp-env idp-up idp-down idp-reset idp-credentials clean
 
 help:
 	@echo "╔════════════════════════════════════════════════════════╗"
@@ -22,6 +23,10 @@ help:
 	@echo "  make migrate      - Apply database migrations"
 	@echo "  make migrate-down - Roll back one database migration"
 	@echo "  make test-integration - Run TODO tests against PostgreSQL"
+	@echo "  make idp-up       - Start and configure local ZITADEL"
+	@echo "  make idp-down     - Stop local ZITADEL"
+	@echo "  make idp-reset    - Delete local ZITADEL data and credentials"
+	@echo "  make idp-credentials - Show generated local user credentials"
 	@echo "  make clean        - Clean build artifacts"
 	@echo ""
 
@@ -41,9 +46,9 @@ build: generate
 	go build -o saas-poc ./cmd/server/
 	@echo "✅ Build complete: ./saas-poc"
 
-run: generate
+run: idp-up generate
 	@echo "🚀 Starting server..."
-	go run ./cmd/server/
+	@set -a; . ./.zitadel/app.env; set +a; go run ./cmd/server/
 
 docker-build:
 	@echo "🐳 Building Docker image..."
@@ -54,9 +59,9 @@ docker-run:
 	@echo "🐳 Running Docker container on http://localhost:8080..."
 	docker run --rm -p 8080:8080 saas-poc:latest
 
-dev:
+dev: idp-up
 	@echo "👀 Starting dev server with hot-reload..."
-	go tool air
+	@set -a; . ./.zitadel/app.env; set +a; go tool air
 
 db-up:
 	@echo "Starting PostgreSQL 18..."
@@ -87,6 +92,37 @@ test-integration: generate
 	TEST_DATABASE_URL="$(TEST_DATABASE_URL)" go test -v ./internal/delivery/dashboard || status=$$?; \
 	docker compose rm -sf postgres-test; \
 	exit $$status
+
+idp-env:
+	@mkdir -p .zitadel
+	@if [ ! -f .zitadel/zitadel.env ]; then \
+		umask 077; \
+		printf '%s\n' \
+			"ZITADEL_MASTERKEY=$$(openssl rand -hex 16)" \
+			"ZITADEL_DB_PASSWORD=$$(openssl rand -hex 24)" \
+			"ZITADEL_ADMIN_PASSWORD=Zitadel1-$$(openssl rand -hex 12)!" \
+			"SUPER_ADMIN_PASSWORD=Super1-$$(openssl rand -hex 12)!" \
+			"REGULAR_USER_PASSWORD=Regular1-$$(openssl rand -hex 12)!" \
+			> .zitadel/zitadel.env; \
+	fi
+
+idp-up: idp-env
+	@echo "Starting and configuring ZITADEL on http://auth.localhost:8081..."
+	@$(ZITADEL_COMPOSE) up -d --wait zitadel-proxy
+	@$(ZITADEL_COMPOSE) run --rm zitadel-config
+	@test -s .zitadel/app.env
+	@echo "ZITADEL is ready. Run 'make idp-credentials' for local logins."
+
+idp-down: idp-env
+	@$(ZITADEL_COMPOSE) down
+
+idp-reset: idp-env
+	@$(ZITADEL_COMPOSE) down --volumes --remove-orphans
+	@rm -rf .zitadel
+
+idp-credentials: idp-env
+	@set -a; . ./.zitadel/zitadel.env; set +a; \
+	printf 'super-admin@example.test  %s\nregular-user@example.test  %s\n' "$$SUPER_ADMIN_PASSWORD" "$$REGULAR_USER_PASSWORD"
 
 clean:
 	@echo "🧹 Cleaning up..."

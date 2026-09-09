@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	authdelivery "github.com/marcello/saas-poc/internal/delivery/auth"
 	"github.com/marcello/saas-poc/internal/delivery/dashboard"
 	"github.com/marcello/saas-poc/internal/delivery/system"
 	"github.com/marcello/saas-poc/internal/delivery/website"
@@ -57,10 +58,26 @@ func main() {
 	router.Use(chimiddleware.Recoverer)
 	router.Use(middleware.Logging)
 
+	authConfig, err := authdelivery.NewConfig(
+		environmentOrDefault("ZITADEL_ISSUER", "http://auth.localhost:8081"),
+		os.Getenv("ZITADEL_CLIENT_ID"),
+		environmentOrDefault("APPLICATION_ORIGIN", "http://localhost:8080"),
+	)
+	if err != nil {
+		log.Fatalf("configure authentication: %v", err)
+	}
+	discoveryContext, cancelDiscovery := context.WithTimeout(context.Background(), 10*time.Second)
+	tokenVerifier, err := middleware.NewOIDCAccessTokenVerifier(discoveryContext, authConfig.Issuer, authConfig.ClientID)
+	cancelDiscovery()
+	if err != nil {
+		log.Fatalf("configure token verifier: %v", err)
+	}
+
 	website.RegisterRoutes(router)
+	authdelivery.RegisterRoutes(router, authConfig)
 	todoRepository := todos.NewPostgresTodoRepository(pool)
 	todoService := todos.NewTodoService(todoRepository)
-	dashboard.RegisterRoutes(router, todoService)
+	dashboard.RegisterRoutes(router, todoService, middleware.RequireBearer(tokenVerifier, "super-admin", "regular-user"))
 	system.RegisterRoutes(router)
 
 	server := &http.Server{
@@ -147,4 +164,11 @@ Press Ctrl+C to stop the server.
 
 		log.Println("shutdown complete")
 	}
+}
+
+func environmentOrDefault(name, fallback string) string {
+	if value := os.Getenv(name); value != "" {
+		return value
+	}
+	return fallback
 }

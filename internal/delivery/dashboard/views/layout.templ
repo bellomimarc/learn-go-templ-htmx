@@ -10,6 +10,7 @@ templ Layout(title string, locale Locale, currentPath string) {
 			<title>{ title } - { locale.Text("layout.title.suffix") }</title>
 			<meta name="htmx-config" content='{"implicitInheritance": false}'/>
 			<script src="https://cdn.jsdelivr.net/npm/htmx.org@4.0.0/dist/htmx.min.js" integrity="sha384-BvJpBiO8Kh31EqtJe5DRIeWrHWnCGkwytKs9NKFi86Hhw96dEqdEMzZDeK9iEGTc" crossorigin="anonymous"></script>
+			<script defer src="/auth/client.js"></script>
 			<style>
 				* {
 					margin: 0;
@@ -38,6 +39,17 @@ templ Layout(title string, locale Locale, currentPath string) {
 				.header h1 {
 					font-size: 1.8rem;
 					font-weight: 600;
+				}
+				.header-actions {
+					display: flex;
+					align-items: center;
+					gap: 1rem;
+				}
+				.auth-logout {
+					color: white;
+					font-weight: 600;
+					text-decoration: underline;
+					text-underline-offset: 0.2rem;
 				}
 				.language-switcher {
 					display: flex;
@@ -117,6 +129,10 @@ templ Layout(title string, locale Locale, currentPath string) {
 					0% { transform: rotate(0deg); }
 					100% { transform: rotate(360deg); }
 				}
+				@media (max-width: 680px) {
+					.header-row,
+					.header-actions { align-items: flex-start; flex-direction: column; }
+				}
 			</style>
 		</head>
 		<body>
@@ -126,14 +142,17 @@ templ Layout(title string, locale Locale, currentPath string) {
 						<h1>📊 { locale.Text("layout.brand") }</h1>
 						<p>{ locale.Text("layout.subtitle") }</p>
 					</div>
-					<form class="language-switcher" action={ currentPath } method="get">
-						<label for="lang">{ locale.Text("language.label") }</label>
-						<select id="lang" name="lang" onchange="this.form.submit()">
-							for _, option := range locale.LanguageOptions() {
-								<option value={ option.Code } if option.Code == locale.Code { selected }>{ option.Label }</option>
-							}
-						</select>
-					</form>
+					<div class="header-actions">
+						<form class="language-switcher" action={ currentPath } method="get">
+							<label for="lang">{ locale.Text("language.label") }</label>
+							<select id="lang" name="lang" onchange="this.form.submit()">
+								for _, option := range locale.LanguageOptions() {
+									<option value={ option.Code } if option.Code == locale.Code { selected }>{ option.Label }</option>
+								}
+							</select>
+						</form>
+						<a class="auth-logout" href="/auth/logout">{ locale.Text("auth.logout") }</a>
+					</div>
 				</div>
 			</div>
 			<div class="container">

@@ -54,7 +54,6 @@ templ EventsPage(locale Locale) {
 			</div>
 			<script>
 				(() => {
-					const stream = new EventSource("/dashboard/events/stream");
 					const config = document.getElementById("events-config").dataset;
 					const status = document.getElementById("events-status");
 					const alert = document.getElementById("events-alert");
@@ -62,17 +61,10 @@ templ EventsPage(locale Locale) {
 					const receivedLabel = config.receivedLabel;
 					const openLabel = config.openLabel;
 					const closedLabel = config.closedLabel;
+					const controller = new AbortController();
 
-					stream.addEventListener("open", () => {
-						status.textContent = openLabel;
-					});
-
-					stream.addEventListener("error", () => {
-						status.textContent = closedLabel;
-					});
-
-					stream.addEventListener("notification", (event) => {
-						const data = JSON.parse(event.data);
+					function renderNotification(payload) {
+						const data = JSON.parse(payload);
 						const empty = list.querySelector(".events-empty");
 						if (empty) {
 							empty.remove();
@@ -96,7 +88,63 @@ templ EventsPage(locale Locale) {
 
 						box.append(title, message, time);
 						list.prepend(box);
-					});
+					}
+
+					function consumeEvent(block) {
+						let eventName = "message";
+						const data = [];
+						for (const line of block.split("\n")) {
+							if (line.startsWith("event:")) {
+								eventName = line.slice(6).trim();
+							}
+							if (line.startsWith("data:")) {
+								data.push(line.slice(5).trimStart());
+							}
+						}
+						if (eventName === "notification" && data.length > 0) {
+							renderNotification(data.join("\n"));
+						}
+					}
+
+					async function connect() {
+						while (!controller.signal.aborted) {
+							try {
+								const response = await window.zitadelAuth.fetch("/dashboard/events/stream", {
+									headers: {Accept: "text/event-stream"},
+									signal: controller.signal
+								});
+								if (!response.ok || !response.body) {
+									throw new Error("event stream unavailable");
+								}
+								status.textContent = openLabel;
+								const reader = response.body.getReader();
+								const decoder = new TextDecoder();
+								let buffer = "";
+								for (;;) {
+									const {done, value} = await reader.read();
+									if (done) {
+										break;
+									}
+									buffer = (buffer + decoder.decode(value, {stream: true})).replaceAll("\r\n", "\n");
+									let boundary = buffer.indexOf("\n\n");
+									while (boundary >= 0) {
+										consumeEvent(buffer.slice(0, boundary));
+										buffer = buffer.slice(boundary + 2);
+										boundary = buffer.indexOf("\n\n");
+									}
+								}
+							} catch (error) {
+								if (controller.signal.aborted) {
+									return;
+								}
+								status.textContent = closedLabel;
+								await new Promise(resolve => window.setTimeout(resolve, 2000));
+							}
+						}
+					}
+
+					window.addEventListener("pagehide", () => controller.abort(), {once: true});
+					connect();
 				})();
 			</script>
 		</div>

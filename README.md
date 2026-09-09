@@ -9,6 +9,7 @@ Un proof-of-concept di applicazione SaaS minimale costruita in Go con rendering 
 - ✅ **Interattività senza JS-heavy**: HTMX via CDN per UX reattiva
 - ✅ **REST API pura**: `encoding/json` della stdlib, nessun framework aggiuntivo
 - ✅ **Persistenza esplicita**: PostgreSQL 18 con query SQL parametrizzate e migrazioni Goose
+- ✅ **Autenticazione locale**: ZITADEL + OIDC Authorization Code con PKCE + access token JWT
 - ✅ **Pragmatico**: Codice leggibile e focalizzato sulla didattica
 
 ## 📦 Stack Tecnologico
@@ -22,6 +23,8 @@ Un proof-of-concept di applicazione SaaS minimale costruita in Go con rendering 
 | **HTTP Server** | `net/http` (stdlib) | Server HTTP nativo |
 | **Database** | PostgreSQL 18 + pgx v5 | Persistenza senza ORM |
 | **Migrazioni** | Goose | Schema SQL versionato |
+| **Identity Provider** | ZITADEL 4 | Login OIDC, ruoli e access token JWT |
+| **Provisioning locale** | Terraform | Progetto, app, ruoli e utenti riproducibili |
 
 ## 📁 Struttura Progetto
 
@@ -71,7 +74,34 @@ postgres://saas_poc:saas_poc@localhost:5432/saas_poc?sslmode=disable
 
 Può essere sostituita impostando `DATABASE_URL` sia per `make migrate` sia per il server.
 
-### 3. Generare Codice da Templ
+### 3. Avviare e configurare ZITADEL
+
+Il target avvia lo stack ZITADEL isolato, genera credenziali locali in `.zitadel/`,
+e applica la configurazione Terraform in modo idempotente:
+
+```bash
+make idp-up
+```
+
+ZITADEL sarà disponibile su [http://auth.localhost:8081](http://auth.localhost:8081).
+Il dominio speciale `.localhost` risolve automaticamente a loopback e non richiede
+modifiche a `/etc/hosts`.
+
+La configurazione iniziale contiene:
+
+- organizzazione `local-org`
+- progetto `local-prj`
+- applicazione pubblica OIDC/PKCE `local-app`
+- ruoli `super-admin` e `regular-user`
+- utenti `super-admin@example.test` e `regular-user@example.test`, ciascuno con il ruolo corrispondente
+
+Le password sono generate al primo avvio e non vengono versionate. Per visualizzarle:
+
+```bash
+make idp-credentials
+```
+
+### 4. Generare Codice da Templ
 
 Templ compila i file `.templ` in codice Go. Per installarlo come tool locale del progetto:
 
@@ -88,11 +118,15 @@ go tool templ generate
 Questo crea file `.templ.go` vicino ai rispettivi `.templ` dentro ogni modulo di delivery
 (`internal/delivery/*/views/`).
 
-### 4. Avviare il Server
+### 5. Avviare il Server
 
 ```bash
 make run
 ```
+
+`make run` verifica anche che ZITADEL sia avviato e carica automaticamente
+`ZITADEL_ISSUER`, `ZITADEL_CLIENT_ID` e `APPLICATION_ORIGIN` dal file generato
+`.zitadel/app.env`.
 
 Output atteso:
 
@@ -104,7 +138,7 @@ Output atteso:
 📡 Server running on http://localhost:8080
 ```
 
-### 5. Testare l'Applicazione
+### 6. Testare l'Applicazione
 
 I test ordinari non richiedono un database:
 
@@ -124,6 +158,18 @@ Per fermare il database di sviluppo mantenendo i dati nel volume Docker:
 make db-down
 ```
 
+Per fermare ZITADEL mantenendo dati e configurazione:
+
+```bash
+make idp-down
+```
+
+Per eliminare completamente dati, stato Terraform e credenziali locali:
+
+```bash
+make idp-reset
+```
+
 #### Landing Page (HTML via Templ)
 
 ```text
@@ -138,7 +184,27 @@ Renderizza la landing pubblica del dominio website.
 GET http://localhost:8080/dashboard
 ```
 
-Renderizza la dashboard con layout dedicato e interazione HTMX.
+Avvia il login ZITADEL e, dopo l'autenticazione, renderizza la dashboard con
+layout dedicato e interazione HTMX. L'accesso richiede il ruolo `super-admin`
+oppure `regular-user` nel progetto `local-prj`.
+
+### Flusso di autenticazione
+
+L'applicazione usa Authorization Code con PKCE come client pubblico. Non crea
+cookie applicativi: `state`, `nonce`, PKCE verifier, ID token e access token
+rimangono nel `sessionStorage` della scheda. Le richieste HTMX e lo stream SSE
+inviano l'access token JWT nell'header `Authorization: Bearer`.
+
+Il server verifica firma tramite JWKS, issuer, audience, scadenza e presenza di
+uno dei ruoli consentiti prima di eseguire qualsiasi handler sotto `/dashboard`.
+ZITADEL usa i propri cookie sul dominio separato `auth.localhost` per la sua
+sessione SSO; il server applicativo su `localhost:8080` non riceve né imposta
+quei cookie.
+
+Questa configurazione usa HTTP e password locali generate ed è destinata
+esclusivamente allo sviluppo. In ambienti condivisi o di produzione occorre
+TLS, gestione esterna dei segreti e una revisione della strategia di storage dei
+token nel browser.
 
 #### TODO List persistente
 

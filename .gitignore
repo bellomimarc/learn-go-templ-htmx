@@ -40,3 +40,6 @@ Thumbs.db
 # Hot reload
 # .air.toml
 tmp/
+
+# Local ZITADEL credentials and generated application configuration
+.zitadel/

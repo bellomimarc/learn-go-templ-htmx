@@ -16,20 +16,23 @@ import (
 var statusLimiter = NewRateLimiter(5, 2*time.Second)
 var eventBroker = newSSEBroker()
 
-func RegisterRoutes(router chi.Router, todoService todos.TodoService) {
-	router.Get("/dashboard", handleDashboard)
-	router.Get("/dashboard/events", handleEventsPage)
-	router.Get("/dashboard/events/stream", handleEventsStream(eventBroker))
-	router.Post("/dashboard/events", handleEventTrigger(eventBroker))
-	router.Get("/dashboard/loan", handleLoanApplicationPage)
-	router.Get("/dashboard/todos", handleTodoPage(todoService))
-	router.Get("/dashboard/status", handleStatus)
-	router.Post("/dashboard/loan/validate", handleLoanValidation)
-	router.Post("/dashboard/loan/submit", handleLoanSubmission)
-	router.Post("/dashboard/todos", handleTodoCreate(todoService))
-	router.Put("/dashboard/todos/{id}", handleTodoRename(todoService))
-	router.Patch("/dashboard/todos/{id}/toggle", handleTodoToggle(todoService))
-	router.Delete("/dashboard/todos/{id}", handleTodoDelete(todoService))
+func RegisterRoutes(router chi.Router, todoService todos.TodoService, authenticate func(http.Handler) http.Handler) {
+	router.Group(func(protected chi.Router) {
+		protected.Use(authenticate)
+		protected.Get("/dashboard", handleDashboard)
+		protected.Get("/dashboard/events", handleEventsPage)
+		protected.Get("/dashboard/events/stream", handleEventsStream(eventBroker))
+		protected.Post("/dashboard/events", handleEventTrigger(eventBroker))
+		protected.Get("/dashboard/loan", handleLoanApplicationPage)
+		protected.Get("/dashboard/todos", handleTodoPage(todoService))
+		protected.Get("/dashboard/status", handleStatus)
+		protected.Post("/dashboard/loan/validate", handleLoanValidation)
+		protected.Post("/dashboard/loan/submit", handleLoanSubmission)
+		protected.Post("/dashboard/todos", handleTodoCreate(todoService))
+		protected.Put("/dashboard/todos/{id}", handleTodoRename(todoService))
+		protected.Patch("/dashboard/todos/{id}/toggle", handleTodoToggle(todoService))
+		protected.Delete("/dashboard/todos/{id}", handleTodoDelete(todoService))
+	})
 }
 
 // Shutdown ends long-lived dashboard streams so in-flight requests can drain.

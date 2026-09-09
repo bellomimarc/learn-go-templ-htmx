@@ -96,7 +96,9 @@ func setupTodoIntegrationTest(t *testing.T) (*pgxpool.Pool, http.Handler) {
 
 	router := chi.NewRouter()
 	repository := todos.NewPostgresTodoRepository(pool)
-	RegisterRoutes(router, todos.NewTodoService(repository))
+	RegisterRoutes(router, todos.NewTodoService(repository), func(next http.Handler) http.Handler {
+		return next
+	})
 	return pool, router
 }
 
