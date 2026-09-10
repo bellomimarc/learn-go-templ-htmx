@@ -145,6 +145,19 @@ services:
     networks:
       - zitadel
 
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - zitadel
+
   zitadel-config:
     image: hashicorp/terraform:1.14.0
     working_dir: /config
@@ -167,6 +180,8 @@ services:
       - zitadel
     depends_on:
       zitadel-proxy:
+        condition: service_healthy
+      mailpit:
         condition: service_healthy
 
 networks:

@@ -30,6 +30,16 @@ variable "regular_user_password" {
   sensitive = true
 }
 
+resource "zitadel_email_provider_smtp" "local" {
+  description      = "Local Mailpit"
+  host             = "mailpit:1025"
+  sender_address   = "no-reply@example.test"
+  sender_name      = "Local ZITADEL"
+  reply_to_address = "support@example.test"
+  tls              = false
+  set_active       = true
+}
+
 resource "zitadel_org" "local" {
   name = "local-org"
 }

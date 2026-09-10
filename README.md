@@ -87,6 +87,13 @@ ZITADEL sarà disponibile su [http://auth.localhost:8081](http://auth.localhost:
 Il dominio speciale `.localhost` risolve automaticamente a loopback e non richiede
 modifiche a `/etc/hosts`.
 
+Mailpit intercetta le email inviate da ZITADEL ed espone la casella locale su
+[http://localhost:8025](http://localhost:8025). Il provider SMTP viene configurato
+e attivato automaticamente da Terraform senza TLS o credenziali, esclusivamente
+all'interno della rete Docker locale. È quindi possibile usare i flussi di password
+dimenticata, reinvio del codice e verifica email, poi aprire Mailpit per leggere il
+messaggio e seguire il link o copiare il codice ricevuto.
+
 La configurazione iniziale contiene:
 
 - organizzazione `local-org`

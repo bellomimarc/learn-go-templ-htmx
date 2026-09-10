@@ -115,7 +115,8 @@ idp-up: idp-env
 	@client_id="$$(cat .zitadel/client_id)"; \
 	tmp_file="$$(mktemp .env.XXXXXX)"; \
 	awk -v client_id="$$client_id" 'BEGIN { updated = 0 } /^ZITADEL_CLIENT_ID=/ { print "ZITADEL_CLIENT_ID=" client_id; updated = 1; next } { print } END { if (!updated) print "ZITADEL_CLIENT_ID=" client_id }' .env > "$$tmp_file" && mv "$$tmp_file" .env
-	@echo "ZITADEL is ready. Run 'make idp-credentials' for local logins."
+	@echo "ZITADEL is ready. Open Mailpit at http://localhost:8025 to inspect emails."
+	@echo "Run 'make idp-credentials' for local logins."
 
 idp-down: idp-env
 	@$(ZITADEL_COMPOSE) down
